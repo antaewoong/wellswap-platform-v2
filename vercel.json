@@ -1,6 +1,12 @@
 {
   "version": 2,
   "name": "wellswap-platform",
+  "git": {
+    "deploymentEnabled": {
+      "main": false,
+      "vercel-deploy": true
+    }
+  },
   "builds": [
     {
       "src": "package.json",
