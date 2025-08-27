@@ -32,6 +32,10 @@ yarn-error.log*
 
 # env files (can opt-in for committing if needed)
 .env*
+.env.local
+.env.development.local
+.env.test.local
+.env.production.local
 
 # vercel
 .vercel
@@ -39,3 +43,60 @@ yarn-error.log*
 # typescript
 *.tsbuildinfo
 next-env.d.ts
+
+# WellSwap specific
+# Backup files
+wellswap_backup_*/
+*.tar.gz
+*.zip
+*.backup
+
+# Development and test files
+test-checklist.md
+test-input.html
+manual-backup-commands.md
+wellswap_*_report_*.md
+wellswap_*_roadmap*.md
+wellswap_*_analysis*.md
+wellswap_*_log*.md
+wellswap_*_enhancement*.md
+
+# Backup database files
+lib/database-wellswap_backup_*.ts
+lib/supabase.backup.ts
+
+# Backup component files
+components/WellSwapComplete_backup_*.tsx
+components/ContractIntegration*.js
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db
+
+# Supabase
+.supabase/
+
+# AI/ML models and data
+*.model
+*.weights
+*.bin
+*.onnx
+
+# Blockchain
+*.key
+*.pem
+*.keystore
