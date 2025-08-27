@@ -64,6 +64,7 @@ import { supabase } from '../lib/database-wellswap'
 import ReliabilityScore from './reliability/ReliabilityScore';
 import fulfillmentAPI from '../lib/fulfillment-api';
 import { AdminInquiryPanel } from './AdminInquiryPanel';
+import { THEME_ROOT_CLASS } from '../app/config/theme';
 
 // 타입 정의
 type TDict = any;
@@ -1988,7 +1989,7 @@ export default function WellSwapGlobalPlatform() {
   };
 
   return (
-    <div className="min-h-screen bg-zinc-50 text-zinc-900">
+    <div className={THEME_ROOT_CLASS} suppressHydrationWarning>
       {/* Navigation */}
       <nav className="flex items-center justify-between p-6 border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center space-x-8">

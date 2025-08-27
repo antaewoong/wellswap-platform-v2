@@ -2,6 +2,7 @@
 import React, { useState, useCallback } from 'react';
 import dynamic from 'next/dynamic';
 import { Menu, X, Wallet, Globe } from 'lucide-react';
+import { THEME_ROOT_CLASS } from '../app/config/theme';
 
 // 직접 import로 변경하여 안정성 확보
 import SellPage from './pages/SellPage';
@@ -46,7 +47,7 @@ export default function WellSwapMain() {
   }, []);
 
   return (
-    <div className="min-h-screen bg-gradient-to-br from-blue-50 via-white to-purple-50">
+    <div className={THEME_ROOT_CLASS} suppressHydrationWarning>
       {/* 네비게이션 */}
       <nav className="flex items-center justify-between p-6 border-b border-zinc-200 bg-white/80 backdrop-blur-md sticky top-0 z-50">
         <div className="flex items-center space-x-8">
