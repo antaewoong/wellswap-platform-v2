@@ -1,0 +1,50 @@
+# Backup files and archives
+wellswap_backup_*/
+*.tar.gz
+*.zip
+*.backup
+
+# Development and test files
+test-checklist.md
+test-input.html
+manual-backup-commands.md
+wellswap_*_report_*.md
+wellswap_*_roadmap*.md
+wellswap_*_analysis*.md
+wellswap_*_log*.md
+wellswap_*_enhancement*.md
+
+# Backup database files
+lib/database-wellswap_backup_*.ts
+lib/supabase.backup.ts
+
+# Backup component files
+components/WellSwapComplete_backup_*.tsx
+components/ContractIntegration*.js
+
+# Environment and config backups
+env.example
+*.env.local
+*.env.development
+*.env.test
+
+# Logs and temporary files
+*.log
+*.tmp
+*.temp
+
+# IDE and editor files
+.vscode/
+.idea/
+*.swp
+*.swo
+*~
+
+# OS generated files
+.DS_Store
+.DS_Store?
+._*
+.Spotlight-V100
+.Trashes
+ehthumbs.db
+Thumbs.db

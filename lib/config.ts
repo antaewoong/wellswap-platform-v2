@@ -1,0 +1,25 @@
+// lib/config.ts - 환경 변수 중앙화
+export const config = {
+  NEXT_PUBLIC_BASE_URL: process.env.NEXT_PUBLIC_BASE_URL || 'http://localhost:3000',
+  NEXT_PUBLIC_AI_SERVER_URL: process.env.NEXT_PUBLIC_AI_SERVER_URL || 'https://wellswaphk.onrender.com',
+  NEXT_PUBLIC_SUPABASE_URL: process.env.NEXT_PUBLIC_SUPABASE_URL,
+  NEXT_PUBLIC_SUPABASE_ANON_KEY: process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY,
+  NEXT_PUBLIC_CONTRACT_ADDRESS: process.env.NEXT_PUBLIC_CONTRACT_ADDRESS || '0x742d35Cc6634C0532925a3b8c0C9e51C93093c67',
+  GOOGLE_CLOUD_VISION_API_KEY: process.env.GOOGLE_CLOUD_VISION_API_KEY,
+  AZURE_VISION_API_KEY: process.env.AZURE_VISION_API_KEY,
+  NEXT_PUBLIC_HUGGINGFACE_TOKEN: process.env.NEXT_PUBLIC_HUGGINGFACE_TOKEN,
+  RESEND_API_KEY: process.env.RESEND_API_KEY,
+  NEXT_PUBLIC_GOOGLE_CLIENT_ID: process.env.NEXT_PUBLIC_GOOGLE_CLIENT_ID,
+  GOOGLE_CLIENT_SECRET: process.env.GOOGLE_CLIENT_SECRET,
+};
+
+export const validateEnv = () => {
+  if (!config.NEXT_PUBLIC_SUPABASE_URL) {
+    console.error('NEXT_PUBLIC_SUPABASE_URL is not defined');
+  }
+  if (!config.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+    console.error('NEXT_PUBLIC_SUPABASE_ANON_KEY is not defined');
+  }
+};
+
+validateEnv();
