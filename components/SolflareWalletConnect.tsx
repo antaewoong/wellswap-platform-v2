@@ -56,12 +56,25 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
         console.log('🔗 Solflare 지갑 감지됨');
       } else {
         console.log('⚠️ Solflare 지갑이 설치되지 않았습니다');
+        setWallet(null);
       }
     };
 
+    // 즉시 감지
     detectWallet();
-    window.addEventListener('load', detectWallet);
-    return () => window.removeEventListener('load', detectWallet);
+    
+    // 페이지 로드 후 다시 감지
+    if (document.readyState === 'loading') {
+      window.addEventListener('load', detectWallet);
+    }
+    
+    // 지갑 설치 후 감지를 위한 이벤트 리스너
+    window.addEventListener('solflare#initialized', detectWallet);
+    
+    return () => {
+      window.removeEventListener('load', detectWallet);
+      window.removeEventListener('solflare#initialized', detectWallet);
+    };
   }, []);
 
   // 지갑 연결 상태 모니터링
@@ -70,15 +83,16 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
 
     const handleAccountChange = () => {
       if (wallet.isConnected && wallet.publicKey) {
-        handleConnect();
+        // 이미 연결된 상태에서는 connect() 호출하지 않고 바로 처리
+        handleWalletConnected();
       } else {
         handleDisconnect();
       }
     };
 
-    // 연결 상태 확인
+    // 연결 상태 확인 - 이미 연결되어 있으면 바로 처리
     if (wallet.isConnected && wallet.publicKey) {
-      handleConnect();
+      handleWalletConnected();
     }
 
     // 이벤트 리스너 등록
@@ -91,10 +105,53 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
     };
   }, [wallet]);
 
-  // 지갑 연결
+  // 지갑 연결 처리 (이미 연결된 상태에서 호출)
+  const handleWalletConnected = useCallback(async () => {
+    if (!wallet?.publicKey) return;
+
+    setIsLoading(true);
+    try {
+      const publicKey = wallet.publicKey.toString();
+      
+      // SOL 잔액 조회
+      const solBalance = await connection.getBalance(wallet.publicKey);
+      const solBalanceFormatted = solBalance / LAMPORTS_PER_SOL;
+      setBalance(solBalanceFormatted);
+
+      // USDT 잔액 조회
+      try {
+        const usdtTokenAccount = await getAssociatedTokenAddress(
+          USDT_MINT,
+          wallet.publicKey
+        );
+        const usdtAccountInfo = await connection.getTokenAccountBalance(usdtTokenAccount);
+        const usdtBalanceFormatted = usdtAccountInfo.value.uiAmount || 0;
+        setUsdtBalance(usdtBalanceFormatted);
+      } catch (error) {
+        console.log('USDT 토큰 계정이 없습니다');
+        setUsdtBalance(0);
+      }
+
+      onConnect(publicKey, solBalanceFormatted);
+      console.log('✅ Solflare 지갑 연결 성공:', publicKey);
+    } catch (error) {
+      console.error('❌ 지갑 연결 처리 실패:', error);
+      onError('지갑 연결 처리에 실패했습니다');
+    } finally {
+      setIsLoading(false);
+    }
+  }, [wallet, connection, onConnect, onError]);
+
+  // 지갑 연결 (새로 연결할 때만 호출)
   const handleConnect = useCallback(async () => {
     if (!wallet) {
       onError('Solflare 지갑을 설치해주세요');
+      return;
+    }
+
+    // 이미 연결되어 있으면 바로 처리
+    if (wallet.isConnected && wallet.publicKey) {
+      handleWalletConnected();
       return;
     }
 
@@ -103,37 +160,19 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
       await wallet.connect?.();
       
       if (wallet.publicKey) {
-        const publicKey = wallet.publicKey.toString();
-        
-        // SOL 잔액 조회
-        const solBalance = await connection.getBalance(wallet.publicKey);
-        const solBalanceFormatted = solBalance / LAMPORTS_PER_SOL;
-        setBalance(solBalanceFormatted);
-
-        // USDT 잔액 조회
-        try {
-          const usdtTokenAccount = await getAssociatedTokenAddress(
-            USDT_MINT,
-            wallet.publicKey
-          );
-          const usdtAccountInfo = await connection.getTokenAccountBalance(usdtTokenAccount);
-          const usdtBalanceFormatted = usdtAccountInfo.value.uiAmount || 0;
-          setUsdtBalance(usdtBalanceFormatted);
-        } catch (error) {
-          console.log('USDT 토큰 계정이 없습니다');
-          setUsdtBalance(0);
-        }
-
-        onConnect(publicKey, solBalanceFormatted);
-        console.log('✅ Solflare 지갑 연결 성공:', publicKey);
+        handleWalletConnected();
+      } else {
+        throw new Error('지갑 연결 후 publicKey를 가져올 수 없습니다');
       }
     } catch (error) {
       console.error('❌ 지갑 연결 실패:', error);
-      onError('지갑 연결에 실패했습니다');
+      // 에러 메시지를 더 구체적으로 제공
+      const errorMessage = error instanceof Error ? error.message : '지갑 연결에 실패했습니다';
+      onError(errorMessage);
     } finally {
       setIsLoading(false);
     }
-  }, [wallet, connection, onConnect, onError]);
+  }, [wallet, handleWalletConnected, onError]);
 
   // 지갑 연결 해제
   const handleDisconnect = useCallback(async () => {
@@ -233,7 +272,7 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
             disabled={!wallet || isLoading}
             className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
           >
-            {!wallet ? 'Solflare 설치 필요' : '지갑 연결'}
+            {!wallet ? 'Solflare 설치 필요' : isLoading ? '연결 중...' : '지갑 연결'}
           </button>
           
           {!wallet && (

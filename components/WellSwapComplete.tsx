@@ -2950,7 +2950,9 @@ export default function WellSwapGlobalPlatform() {
                 console.log('Wallet disconnected');
               }}
               onError={(error) => {
-                alert(error);
+                console.error('Wallet connection error:', error);
+                // alert 대신 console.error로 변경하여 무한 팝업 방지
+                // 사용자가 직접 모달을 닫을 수 있도록 함
               }}
               isConnected={isWeb3Connected}
               connectedAddress={connectedAccount || undefined}

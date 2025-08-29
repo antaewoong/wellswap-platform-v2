@@ -106,6 +106,7 @@ export async function getUsdtBalance(publicKey: PublicKey): Promise<number> {
 // 🏦 USDT 토큰 계정 자동 생성
 export async function createUsdtTokenAccount(publicKey: PublicKey): Promise<boolean> {
   try {
+    const { wallet } = await ensureSolanaConnection();
     const tokenAccount = await getAssociatedTokenAddress(USDT_MINT, publicKey);
     
     // 이미 존재하는지 확인
@@ -126,7 +127,14 @@ export async function createUsdtTokenAccount(publicKey: PublicKey): Promise<bool
         )
       );
 
-      const signature = await connection.sendTransaction(transaction, []);
+      // 트랜잭션 준비
+      await prepareTransaction(transaction, publicKey);
+      
+      // 지갑으로 서명
+      const signedTransaction = await wallet.signTransaction(transaction);
+      
+      // 트랜잭션 전송
+      const signature = await connection.sendRawTransaction(signedTransaction.serialize());
       await connection.confirmTransaction(signature);
       
       console.log('✅ USDT 토큰 계정 생성 완료:', signature);
@@ -182,39 +190,35 @@ export async function registerInsuranceAsset(
     );
 
     // 트랜잭션 생성
-    const transaction = new Transaction().add(
-      // USDT 전송 (등록비)
-      createTransferInstruction(
+    const transaction = new Transaction();
+    
+    // 보험 자산 등록 인스트럭션 생성
+    const registerInstruction = await program.methods
+      .registerInsuranceAsset(
+        {
+          insuranceCompany: assetData.insuranceCompany,
+          productCategory: assetData.productCategory,
+          productName: assetData.productName,
+          contractDate: new BN(assetData.contractDate),
+          contractPeriod: assetData.contractPeriod,
+          paidPeriod: assetData.paidPeriod,
+          annualPremium: new BN(assetData.annualPremium),
+          totalPaid: new BN(assetData.totalPaid),
+        },
+        new BN(registrationFeeLamports)
+      )
+      .accounts({
+        insuranceAsset: insuranceAssetPda,
+        user: publicKey,
         userTokenAccount,
         platformTokenAccount,
-        publicKey,
-        registrationFeeLamports
-      ),
-      // 보험 자산 등록
-      await program.methods
-        .registerInsuranceAsset(
-          {
-            insuranceCompany: assetData.insuranceCompany,
-            productCategory: assetData.productCategory,
-            productName: assetData.productName,
-            contractDate: new BN(assetData.contractDate),
-            contractPeriod: assetData.contractPeriod,
-            paidPeriod: assetData.paidPeriod,
-            annualPremium: new BN(assetData.annualPremium),
-            totalPaid: new BN(assetData.totalPaid),
-          },
-          new BN(registrationFeeLamports)
-        )
-        .accounts({
-          insuranceAsset: insuranceAssetPda,
-          user: publicKey,
-          userTokenAccount,
-          platformTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction()
-    );
+        tokenProgram: TOKEN_PROGRAM_ID,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+    
+    // 트랜잭션에 인스트럭션 추가
+    transaction.add(registerInstruction);
 
     // 트랜잭션 준비 및 서명
     await prepareTransaction(transaction, publicKey);
@@ -251,26 +255,22 @@ export async function purchaseInsuranceAsset(
     const sellerTokenAccount = await getAssociatedTokenAddress(USDT_MINT, sellerPublicKey);
 
     // 트랜잭션 생성
-    const transaction = new Transaction().add(
-      // USDT 전송 (구매 대금)
-      createTransferInstruction(
+    const transaction = new Transaction();
+    
+    // 보험 자산 구매 인스트럭션 생성
+    const purchaseInstruction = await program.methods
+      .purchaseInsuranceAsset(new BN(purchasePriceLamports))
+      .accounts({
+        insuranceAsset: assetPda,
+        buyer: publicKey,
         buyerTokenAccount,
         sellerTokenAccount,
-        publicKey,
-        purchasePriceLamports
-      ),
-      // 보험 자산 구매
-      await program.methods
-        .purchaseInsuranceAsset(new BN(purchasePriceLamports))
-        .accounts({
-          insuranceAsset: assetPda,
-          buyer: publicKey,
-          buyerTokenAccount,
-          sellerTokenAccount,
-          tokenProgram: TOKEN_PROGRAM_ID,
-        })
-        .instruction()
-    );
+        tokenProgram: TOKEN_PROGRAM_ID,
+      })
+      .instruction();
+    
+    // 트랜잭션에 인스트럭션 추가
+    transaction.add(purchaseInstruction);
 
     // 트랜잭션 준비 및 서명
     await prepareTransaction(transaction, publicKey);
@@ -306,19 +306,21 @@ export async function createMultisigTrade(
     );
 
     // 트랜잭션 생성
-    const transaction = new Transaction().add(
-      await program.methods
-        .createMultisigTrade(
-          new BN(assetId),
-          new BN(tradeAmountLamports)
-        )
-        .accounts({
-          multisigTrade: multisigTradePda,
-          initiator: publicKey,
-          systemProgram: SystemProgram.programId,
-        })
-        .instruction()
-    );
+    const transaction = new Transaction();
+    
+    const createTradeInstruction = await program.methods
+      .createMultisigTrade(
+        new BN(assetId),
+        new BN(tradeAmountLamports)
+      )
+      .accounts({
+        multisigTrade: multisigTradePda,
+        initiator: publicKey,
+        systemProgram: SystemProgram.programId,
+      })
+      .instruction();
+    
+    transaction.add(createTradeInstruction);
 
     // 트랜잭션 준비 및 서명
     await prepareTransaction(transaction, publicKey);
@@ -343,15 +345,17 @@ export async function approveMultisigTrade(
     const { program, wallet, publicKey } = await ensureSolanaConnection();
 
     // 트랜잭션 생성
-    const transaction = new Transaction().add(
-      await program.methods
-        .approveMultisigTrade()
-        .accounts({
-          multisigTrade: tradePda,
-          approver: publicKey,
-        })
-        .instruction()
-    );
+    const transaction = new Transaction();
+    
+    const approveInstruction = await program.methods
+      .approveMultisigTrade()
+      .accounts({
+        multisigTrade: tradePda,
+        approver: publicKey,
+      })
+      .instruction();
+    
+    transaction.add(approveInstruction);
 
     // 트랜잭션 준비 및 서명
     await prepareTransaction(transaction, publicKey);
