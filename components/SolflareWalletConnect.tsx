@@ -112,30 +112,46 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
     setIsLoading(true);
     try {
       const publicKey = wallet.publicKey.toString();
+      let solBalanceFormatted = 0;
       
       // SOL 잔액 조회 (에러 처리 개선)
       try {
+        console.log('🔍 SOL 잔액 조회 시작:', wallet.publicKey.toString());
         const solBalance = await connection.getBalance(wallet.publicKey);
-        const solBalanceFormatted = solBalance / LAMPORTS_PER_SOL;
+        solBalanceFormatted = solBalance / LAMPORTS_PER_SOL;
         setBalance(solBalanceFormatted);
         console.log('✅ SOL 잔액 조회 성공:', solBalanceFormatted);
       } catch (error) {
         console.error('❌ SOL 잔액 조회 실패:', error);
+        console.error('❌ 에러 상세:', {
+          message: error.message,
+          code: error.code,
+          publicKey: wallet.publicKey.toString(),
+          rpcUrl: process.env.NEXT_PUBLIC_SOLANA_RPC_URL
+        });
         setBalance(0);
       }
 
       // USDC 잔액 조회 (에러 처리 개선)
       try {
+        console.log('🔍 USDC 잔액 조회 시작:', wallet.publicKey.toString());
         const usdcTokenAccount = await getAssociatedTokenAddress(
           USDC_MINT,
           wallet.publicKey
         );
+        console.log('🔍 USDC 토큰 계정 주소:', usdcTokenAccount.toString());
         const usdcAccountInfo = await connection.getTokenAccountBalance(usdcTokenAccount);
         const usdcBalanceFormatted = usdcAccountInfo.value.uiAmount || 0;
         setUsdtBalance(usdcBalanceFormatted);
         console.log('✅ USDC 잔액 조회 성공:', usdcBalanceFormatted);
       } catch (error) {
         console.log('ℹ️ USDC 토큰 계정이 없습니다 - 필요시 자동 생성됩니다');
+        console.log('ℹ️ 에러 상세:', {
+          message: error.message,
+          code: error.code,
+          publicKey: wallet.publicKey.toString(),
+          usdcMint: USDC_MINT.toString()
+        });
         setUsdtBalance(0);
       }
 
