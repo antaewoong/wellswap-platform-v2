@@ -7,10 +7,15 @@ const ADMIN_WALLETS = [
   // 추가 관리자 지갑 주소를 여기에 추가
 ];
 
-// Supabase 클라이언트 생성 (서비스 역할 키 사용)
+// 환경변수 체크
+if (!process.env.NEXT_PUBLIC_SUPABASE_URL || !process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY) {
+  throw new Error('Supabase 환경변수가 설정되지 않았습니다.');
+}
+
+// Supabase 클라이언트 생성 (익명 키 사용)
 const supabase = createClient(
-  process.env.NEXT_PUBLIC_SUPABASE_URL!,
-  process.env.SUPABASE_SERVICE_ROLE_KEY!
+  process.env.NEXT_PUBLIC_SUPABASE_URL,
+  process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY
 );
 
 // 관리자 권한 확인 함수
