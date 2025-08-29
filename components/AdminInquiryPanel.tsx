@@ -97,9 +97,9 @@ export const AdminInquiryPanel: React.FC<AdminInquiryPanelProps> = ({ user }) =>
       wallet.toLowerCase() === accountStr
     );
     
-    // 로그는 한 번만 출력
-    if (isAdminWallet) {
-      console.log('🔍 AdminInquiryPanel 관리자 권한 확인 (메모이제이션):', {
+    // 로그는 개발 모드에서만 출력하고 빈도 제한
+    if (isAdminWallet && process.env.NODE_ENV === 'development') {
+      console.log('🔍 AdminInquiryPanel 관리자 권한 확인:', {
         walletAddress: accountStr,
         isAdminWallet
       });

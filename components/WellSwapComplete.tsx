@@ -2771,7 +2771,6 @@ export default function WellSwapGlobalPlatform() {
   const isAdmin = useMemo(() => {
     const currentAccount = connectedAccount || web3Account;
     if (!currentAccount) {
-      console.log('🔍 관리자 권한 확인: 지갑이 연결되지 않음');
       return false;
     }
     
@@ -2781,13 +2780,13 @@ export default function WellSwapGlobalPlatform() {
       wallet.toLowerCase() === accountStr
     );
     
-    console.log('🔍 관리자 권한 확인:', {
-      currentAccount: accountStr,
-      isSolanaAdmin,
-      adminWallets: ADMIN_WALLETS.map(w => w.toLowerCase()),
-      connectedAccount: connectedAccount?.toString().toLowerCase(),
-      web3Account: web3Account?.toString().toLowerCase()
-    });
+    // 개발 모드에서만 로그 출력
+    if (process.env.NODE_ENV === 'development' && isSolanaAdmin) {
+      console.log('🔍 관리자 권한 확인:', {
+        currentAccount: accountStr,
+        isSolanaAdmin
+      });
+    }
     
     return isSolanaAdmin;
   }, [connectedAccount, web3Account]);
@@ -2795,11 +2794,6 @@ export default function WellSwapGlobalPlatform() {
   // 관리자 메뉴 표시 여부 (지갑 연결만으로도 표시)
   const showAdminMenu = useMemo(() => {
     const shouldShow = isAdmin && isWeb3Connected;
-    console.log('🎛️ 관리자 메뉴 표시 조건:', {
-      isAdmin,
-      isWeb3Connected,
-      shouldShow
-    });
     return shouldShow;
   }, [isAdmin, isWeb3Connected]);
 

@@ -235,7 +235,7 @@ export async function registerInsuranceAsset(
   }
 }
 
-// 🏦 보험 자산 구매 (USDT 결제)
+// 🏦 보험 자산 구매 (USDC 결제)
 export async function purchaseInsuranceAsset(
   assetPda: PublicKey,
   purchasePriceUsd: number
@@ -243,16 +243,16 @@ export async function purchaseInsuranceAsset(
   try {
     const { program, wallet, publicKey } = await ensureSolanaConnection();
     
-    // USD → USDT 변환 (1:1 가치)
-    const purchasePriceUsdt = usdToUsdt(purchasePriceUsd);
-    const purchasePriceLamports = Math.floor(purchasePriceUsdt * Math.pow(10, 6));
+    // USD → USDC 변환 (1:1 가치)
+    const purchasePriceUsdc = usdToUsdc(purchasePriceUsd);
+    const purchasePriceLamports = Math.floor(purchasePriceUsdc * Math.pow(10, 6));
 
-    // 구매자 USDT 토큰 계정
-    const buyerTokenAccount = await getAssociatedTokenAddress(USDT_MINT, publicKey);
+    // 구매자 USDC 토큰 계정
+    const buyerTokenAccount = await getAssociatedTokenAddress(USDC_MINT, publicKey);
     
-    // 판매자 USDT 토큰 계정 (자산 소유자)
+    // 판매자 USDC 토큰 계정 (자산 소유자)
     const sellerPublicKey = new PublicKey(process.env.NEXT_PUBLIC_SELLER_WALLET || publicKey.toString());
-    const sellerTokenAccount = await getAssociatedTokenAddress(USDT_MINT, sellerPublicKey);
+    const sellerTokenAccount = await getAssociatedTokenAddress(USDC_MINT, sellerPublicKey);
 
     // 트랜잭션 생성
     const transaction = new Transaction();
