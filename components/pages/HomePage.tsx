@@ -46,7 +46,7 @@ export default function HomePage({ currentPage, setCurrentPage }: HomePageProps)
               const event = new CustomEvent('showWalletConnect');
               window.dispatchEvent(event);
             }}
-            className="px-8 py-4 bg-blue-600 text-white font-light hover:bg-blue-700 transition-all duration-300" 
+            className="px-8 py-4 bg-zinc-900 text-zinc-50 font-light hover:bg-zinc-800 transition-all duration-300" 
             style={{clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)'}}
           >
             Connect Wallet
