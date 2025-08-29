@@ -41,10 +41,10 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
     'confirmed'
   );
 
-  // USDT 토큰 주소 (Devnet)
-  const USDT_MINT = new PublicKey(
-    process.env.NEXT_PUBLIC_USDT_MINT_ADDRESS || 
-    'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB' // Devnet USDT
+  // USDC 토큰 주소 (Devnet)
+  const USDC_MINT = new PublicKey(
+    process.env.NEXT_PUBLIC_USDC_MINT_ADDRESS || 
+    'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr' // Devnet USDC
   );
 
   // Solflare 지갑 감지
@@ -118,19 +118,19 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
       const solBalanceFormatted = solBalance / LAMPORTS_PER_SOL;
       setBalance(solBalanceFormatted);
 
-      // USDT 잔액 조회
-      try {
-        const usdtTokenAccount = await getAssociatedTokenAddress(
-          USDT_MINT,
-          wallet.publicKey
-        );
-        const usdtAccountInfo = await connection.getTokenAccountBalance(usdtTokenAccount);
-        const usdtBalanceFormatted = usdtAccountInfo.value.uiAmount || 0;
-        setUsdtBalance(usdtBalanceFormatted);
-      } catch (error) {
-        console.log('USDT 토큰 계정이 없습니다');
-        setUsdtBalance(0);
-      }
+              // USDC 잔액 조회
+        try {
+          const usdcTokenAccount = await getAssociatedTokenAddress(
+            USDC_MINT,
+            wallet.publicKey
+          );
+          const usdcAccountInfo = await connection.getTokenAccountBalance(usdcTokenAccount);
+          const usdcBalanceFormatted = usdcAccountInfo.value.uiAmount || 0;
+          setUsdtBalance(usdcBalanceFormatted);
+        } catch (error) {
+          console.log('USDC 토큰 계정이 없습니다');
+          setUsdtBalance(0);
+        }
 
       onConnect(publicKey, solBalanceFormatted);
       console.log('✅ Solflare 지갑 연결 성공:', publicKey);
@@ -213,21 +213,21 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
     }
   };
 
-  // USDT 토큰 계정 생성
-  const createUsdtAccount = async () => {
+  // USDC 토큰 계정 생성
+  const createUsdcAccount = async () => {
     if (!wallet?.publicKey) return;
     
     setIsLoading(true);
     try {
-      const usdtTokenAccount = await getAssociatedTokenAddress(
-        USDT_MINT,
+      const usdcTokenAccount = await getAssociatedTokenAddress(
+        USDC_MINT,
         wallet.publicKey
       );
       
       // 토큰 계정이 이미 존재하는지 확인
-      const accountInfo = await connection.getAccountInfo(usdtTokenAccount);
+      const accountInfo = await connection.getAccountInfo(usdcTokenAccount);
       if (accountInfo) {
-        console.log('USDT 토큰 계정이 이미 존재합니다');
+        console.log('USDC 토큰 계정이 이미 존재합니다');
         return;
       }
 
@@ -235,108 +235,108 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
       const transaction = new (await import('@solana/web3.js')).Transaction().add(
         (await import('@solana/spl-token')).createAssociatedTokenAccountInstruction(
           wallet.publicKey,
-          usdtTokenAccount,
+          usdcTokenAccount,
           wallet.publicKey,
-          USDT_MINT
+          USDC_MINT
         )
       );
 
       const signature = await wallet.signTransaction?.(transaction);
       if (signature) {
         await connection.sendRawTransaction(signature.serialize());
-        console.log('✅ USDT 토큰 계정 생성 성공');
+        console.log('✅ USDC 토큰 계정 생성 성공');
       }
     } catch (error) {
-      console.error('❌ USDT 토큰 계정 생성 실패:', error);
-      onError('USDT 토큰 계정 생성에 실패했습니다');
+      console.error('❌ USDC 토큰 계정 생성 실패:', error);
+      onError('USDC 토큰 계정 생성에 실패했습니다');
     } finally {
       setIsLoading(false);
     }
   };
 
   return (
-    <div className="flex flex-col space-y-4 p-4 bg-white rounded-lg shadow-md">
+    <div className="flex flex-col space-y-6 p-6 bg-white rounded-xl shadow-lg border border-zinc-100">
       <div className="flex items-center justify-between">
-        <h3 className="text-lg font-semibold text-gray-800">
-          Solflare 지갑 연결
+        <h3 className="text-xl font-light text-zinc-900">
+          Connect Solflare Wallet
         </h3>
         {isLoading && (
-          <div className="animate-spin rounded-full h-6 w-6 border-b-2 border-blue-600"></div>
+          <div className="animate-spin rounded-full h-5 w-5 border-2 border-zinc-300 border-t-zinc-600"></div>
         )}
       </div>
 
       {!isConnected ? (
-        <div className="space-y-3">
+        <div className="space-y-4">
           <button
             onClick={handleConnect}
             disabled={!wallet || isLoading}
-            className="w-full bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            className="w-full bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white font-light py-3 px-6 rounded-lg transition-all duration-300"
           >
-            {!wallet ? 'Solflare 설치 필요' : isLoading ? '연결 중...' : '지갑 연결'}
+            {!wallet ? 'Install Solflare' : isLoading ? 'Connecting...' : 'Connect Wallet'}
           </button>
           
           {!wallet && (
-            <div className="text-sm text-gray-600">
+            <div className="text-sm text-zinc-500 text-center">
               <a 
                 href="https://solflare.com/" 
                 target="_blank" 
                 rel="noopener noreferrer"
-                className="text-blue-600 hover:underline"
+                className="text-zinc-600 hover:text-zinc-800 transition-colors"
               >
-                Solflare 지갑 설치하기 →
+                Download Solflare Wallet →
               </a>
             </div>
           )}
         </div>
       ) : (
-        <div className="space-y-3">
-          <div className="bg-gray-50 p-3 rounded-lg">
-            <div className="text-sm text-gray-600">연결된 주소</div>
-            <div className="font-mono text-sm text-gray-800 break-all">
+        <div className="space-y-4">
+          <div className="bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+            <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">Connected Address</div>
+            <div className="font-mono text-sm text-zinc-800 break-all">
               {connectedAddress}
             </div>
           </div>
 
-          <div className="grid grid-cols-2 gap-3">
-            <div className="bg-green-50 p-3 rounded-lg">
-              <div className="text-sm text-green-600">SOL 잔액</div>
-              <div className="font-semibold text-green-800">
+          <div className="grid grid-cols-2 gap-4">
+            <div className="bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+              <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">SOL Balance</div>
+              <div className="font-light text-lg text-zinc-900">
                 {balance.toFixed(4)} SOL
               </div>
             </div>
             
-            <div className="bg-blue-50 p-3 rounded-lg">
-              <div className="text-sm text-blue-600">USDT 잔액</div>
-              <div className="font-semibold text-blue-800">
-                {usdtBalance.toFixed(2)} USDT
+            <div className="bg-zinc-50 p-4 rounded-lg border border-zinc-200">
+              <div className="text-xs text-zinc-500 uppercase tracking-wide mb-1">USDC Balance</div>
+              <div className="font-light text-lg text-zinc-900">
+                {usdtBalance.toFixed(2)} USDC
               </div>
             </div>
           </div>
 
-          <div className="flex space-x-2">
+          <div className="flex space-x-3">
             <button
               onClick={requestAirdrop}
               disabled={isLoading}
-              className="flex-1 bg-green-600 hover:bg-green-700 disabled:bg-gray-400 text-white text-sm py-2 px-3 rounded-lg transition-colors"
+              className="flex-1 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white text-sm font-light py-2 px-4 rounded-lg transition-all duration-300"
             >
-              테스트 SOL 받기
+              Get Test SOL
             </button>
             
             <button
-              onClick={createUsdtAccount}
+              onClick={createUsdcAccount}
               disabled={isLoading}
-              className="flex-1 bg-blue-600 hover:bg-blue-700 disabled:bg-gray-400 text-white text-sm py-2 px-3 rounded-lg transition-colors"
+              className="flex-1 bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white text-sm font-light py-2 px-4 rounded-lg transition-all duration-300"
             >
-              USDT 계정 생성
+              Create USDC Account
             </button>
           </div>
 
           <button
             onClick={handleDisconnect}
             disabled={isLoading}
-            className="w-full bg-red-600 hover:bg-red-700 disabled:bg-gray-400 text-white font-medium py-2 px-4 rounded-lg transition-colors"
+            className="w-full bg-zinc-100 hover:bg-zinc-200 disabled:bg-zinc-50 text-zinc-700 font-light py-3 px-6 rounded-lg transition-all duration-300 border border-zinc-300"
           >
-            지갑 연결 해제
+            Disconnect Wallet
           </button>
         </div>
       )}

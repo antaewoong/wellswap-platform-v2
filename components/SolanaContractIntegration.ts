@@ -25,14 +25,14 @@ const WELLSWAP_PROGRAM_ID = new PublicKey(
   process.env.NEXT_PUBLIC_SOLANA_PROGRAM_ID || 'Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS'
 );
 
-// USDT 토큰 주소 (Devnet)
-const USDT_MINT = new PublicKey(
-  process.env.NEXT_PUBLIC_USDT_MINT_ADDRESS || 
-  'Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB'
+// USDC 토큰 주소 (Devnet)
+const USDC_MINT = new PublicKey(
+  process.env.NEXT_PUBLIC_USDC_MINT_ADDRESS || 
+  'Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr'
 );
 
 // 등록비 (USD 1:1 가치, 연산 제거)
-const REGISTRATION_FEE_USDT = Number(process.env.NEXT_PUBLIC_REGISTRATION_FEE_USDT || '300');
+const REGISTRATION_FEE_USDC = Number(process.env.NEXT_PUBLIC_REGISTRATION_FEE_USDC || '300');
 
 // Solflare 지갑 타입 정의
 interface SolflareWallet {
@@ -91,39 +91,39 @@ async function ensureSolanaConnection() {
   };
 }
 
-// 🏦 USDT 잔액 조회 (USD 1:1 가치)
-export async function getUsdtBalance(publicKey: PublicKey): Promise<number> {
+// 🏦 USDC 잔액 조회 (USD 1:1 가치)
+export async function getUsdcBalance(publicKey: PublicKey): Promise<number> {
   try {
-    const tokenAccount = await getAssociatedTokenAddress(USDT_MINT, publicKey);
+    const tokenAccount = await getAssociatedTokenAddress(USDC_MINT, publicKey);
     const accountInfo = await getAccount(connection, tokenAccount);
-    return Number(accountInfo.amount) / Math.pow(10, 6); // USDT는 6자리 소수점
+    return Number(accountInfo.amount) / Math.pow(10, 6); // USDC는 6자리 소수점
   } catch (error) {
-    console.log('USDT 토큰 계정이 없습니다 - 자동 생성 시도');
+    console.log('USDC 토큰 계정이 없습니다 - 자동 생성 시도');
     return 0;
   }
 }
 
-// 🏦 USDT 토큰 계정 자동 생성
-export async function createUsdtTokenAccount(publicKey: PublicKey): Promise<boolean> {
+// 🏦 USDC 토큰 계정 자동 생성
+export async function createUsdcTokenAccount(publicKey: PublicKey): Promise<boolean> {
   try {
     const { wallet } = await ensureSolanaConnection();
-    const tokenAccount = await getAssociatedTokenAddress(USDT_MINT, publicKey);
+    const tokenAccount = await getAssociatedTokenAddress(USDC_MINT, publicKey);
     
     // 이미 존재하는지 확인
     try {
       await getAccount(connection, tokenAccount);
-      console.log('✅ USDT 토큰 계정이 이미 존재합니다');
+      console.log('✅ USDC 토큰 계정이 이미 존재합니다');
       return true;
     } catch {
       // 계정이 없으면 생성
-      console.log('🔄 USDT 토큰 계정 생성 중...');
+      console.log('🔄 USDC 토큰 계정 생성 중...');
       
       const transaction = new Transaction().add(
         createAssociatedTokenAccountInstruction(
           publicKey,
           tokenAccount,
           publicKey,
-          USDT_MINT
+          USDC_MINT
         )
       );
 
@@ -137,11 +137,11 @@ export async function createUsdtTokenAccount(publicKey: PublicKey): Promise<bool
       const signature = await connection.sendRawTransaction(signedTransaction.serialize());
       await connection.confirmTransaction(signature);
       
-      console.log('✅ USDT 토큰 계정 생성 완료:', signature);
+      console.log('✅ USDC 토큰 계정 생성 완료:', signature);
       return true;
     }
   } catch (error) {
-    console.error('❌ USDT 토큰 계정 생성 실패:', error);
+    console.error('❌ USDC 토큰 계정 생성 실패:', error);
     return false;
   }
 }
@@ -152,36 +152,36 @@ export async function getSolBalance(publicKey: PublicKey): Promise<number> {
   return balance / web3.LAMPORTS_PER_SOL;
 }
 
-// 💰 USD → USDT 변환 (1:1 가치, 연산 제거)
-export function usdToUsdt(usdAmount: number): number {
+// 💰 USD → USDC 변환 (1:1 가치, 연산 제거)
+export function usdToUsdc(usdAmount: number): number {
   // USD 1:1 가치이므로 단순 반환 (연산 제거)
   return usdAmount;
 }
 
-// 🏦 보험 자산 등록 (USDT 결제)
+// 🏦 보험 자산 등록 (USDC 결제)
 export async function registerInsuranceAsset(
   assetData: any,
-  registrationFeeUsd: number = REGISTRATION_FEE_USDT
+  registrationFeeUsd: number = REGISTRATION_FEE_USDC
 ): Promise<{ success: boolean; transactionHash?: string; error?: string }> {
   try {
     const { program, wallet, publicKey } = await ensureSolanaConnection();
     
-    // USDT 토큰 계정 자동 생성
-    const usdtAccountCreated = await createUsdtTokenAccount(publicKey);
-    if (!usdtAccountCreated) {
-      throw new Error('USDT 토큰 계정 생성에 실패했습니다.');
+    // USDC 토큰 계정 자동 생성
+    const usdcAccountCreated = await createUsdcTokenAccount(publicKey);
+    if (!usdcAccountCreated) {
+      throw new Error('USDC 토큰 계정 생성에 실패했습니다.');
     }
     
-    // USD → USDT 변환 (1:1 가치)
-    const registrationFeeUsdt = usdToUsdt(registrationFeeUsd);
-    const registrationFeeLamports = Math.floor(registrationFeeUsdt * Math.pow(10, 6)); // USDT 6자리
+    // USD → USDC 변환 (1:1 가치)
+    const registrationFeeUsdc = usdToUsdc(registrationFeeUsd);
+    const registrationFeeLamports = Math.floor(registrationFeeUsdc * Math.pow(10, 6)); // USDC 6자리
 
-    // 사용자 USDT 토큰 계정
-    const userTokenAccount = await getAssociatedTokenAddress(USDT_MINT, publicKey);
+    // 사용자 USDC 토큰 계정
+    const userTokenAccount = await getAssociatedTokenAddress(USDC_MINT, publicKey);
     
-    // 플랫폼 USDT 토큰 계정 (관리자 계정)
+    // 플랫폼 USDC 토큰 계정 (관리자 계정)
     const platformPublicKey = new PublicKey(process.env.NEXT_PUBLIC_PLATFORM_WALLET || publicKey.toString());
-    const platformTokenAccount = await getAssociatedTokenAddress(USDT_MINT, platformPublicKey);
+    const platformTokenAccount = await getAssociatedTokenAddress(USDC_MINT, platformPublicKey);
 
     // 보험 자산 PDA 생성
     const [insuranceAssetPda] = PublicKey.findProgramAddressSync(
