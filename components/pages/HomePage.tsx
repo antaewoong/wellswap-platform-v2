@@ -40,6 +40,17 @@ export default function HomePage({ currentPage, setCurrentPage }: HomePageProps)
           >
             Learn More
           </button>
+          <button 
+            onClick={() => {
+              // Solflare 지갑 연결 모달 표시
+              const event = new CustomEvent('showWalletConnect');
+              window.dispatchEvent(event);
+            }}
+            className="px-8 py-4 bg-blue-600 text-white font-light hover:bg-blue-700 transition-all duration-300" 
+            style={{clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)'}}
+          >
+            Connect Wallet
+          </button>
         </div>
       </div>
       

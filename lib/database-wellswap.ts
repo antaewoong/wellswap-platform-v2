@@ -1,40 +1,108 @@
 // lib/database-wellswap.ts - 기존 테이블 구조에 맞춘 Database Service
 import { createClient } from '@supabase/supabase-js';
-import { config } from './config';
 
-const supabaseUrl = config.NEXT_PUBLIC_SUPABASE_URL;
-const supabaseKey = config.NEXT_PUBLIC_SUPABASE_ANON_KEY;
+// 환경 변수 직접 사용 (config를 거치지 않음)
+const getSupabaseConfig = () => {
+  const supabaseUrl = process.env.NEXT_PUBLIC_SUPABASE_URL;
+  const supabaseKey = process.env.NEXT_PUBLIC_SUPABASE_ANON_KEY;
 
-if (!supabaseUrl || !supabaseKey) {
-  console.error('Missing Supabase environment variables');
-  throw new Error('Supabase configuration is missing. Please check your environment variables.');
-}
+  console.log('🔍 Supabase 설정 확인:', {
+    url: supabaseUrl ? '설정됨' : '설정되지 않음',
+    key: supabaseKey ? '설정됨' : '설정되지 않음',
+    urlLength: supabaseUrl?.length || 0,
+    keyLength: supabaseKey?.length || 0
+  });
 
-export const supabase = createClient(supabaseUrl, supabaseKey, {
-  auth: {
-    persistSession: true,
-    autoRefreshToken: true,
-    detectSessionInUrl: true
-  },
-  db: {
-    schema: 'public'
-  },
-  global: {
-    headers: {
-      'x-application-name': 'wellswap'
-    }
-  },
-  realtime: {
-    params: {
-      eventsPerSecond: 10
-    }
+  if (!supabaseUrl || !supabaseKey) {
+    console.error('❌ Missing Supabase environment variables');
+    console.error('URL:', supabaseUrl);
+    console.error('KEY:', supabaseKey ? '설정됨' : '설정되지 않음');
+    throw new Error('Supabase configuration is missing. Please check your environment variables.');
   }
-});
+
+  return { supabaseUrl, supabaseKey };
+};
+
+// Supabase 클라이언트 생성
+const createSupabaseClient = () => {
+  try {
+    const { supabaseUrl, supabaseKey } = getSupabaseConfig();
+    
+    const client = createClient(supabaseUrl, supabaseKey, {
+      auth: {
+        persistSession: true,
+        autoRefreshToken: true,
+        detectSessionInUrl: true
+      },
+      db: {
+        schema: 'public'
+      },
+      global: {
+        headers: {
+          'x-application-name': 'wellswap'
+        }
+      },
+      realtime: {
+        params: {
+          eventsPerSecond: 10
+        }
+      }
+    });
+
+    console.log('✅ Supabase 클라이언트 생성 완료');
+    return client;
+  } catch (error) {
+    console.error('❌ Supabase 클라이언트 생성 실패:', error);
+    throw error;
+  }
+};
+
+export const supabase = createSupabaseClient();
+
+// Supabase 연결 테스트 함수
+export const testSupabaseConnection = async () => {
+  try {
+    console.log('🔍 Supabase 연결 테스트 시작...');
+    
+    // 간단한 쿼리로 연결 확인
+    const { data, error } = await supabase
+      .from('users')
+      .select('count')
+      .limit(1);
+    
+    if (error) {
+      console.error('❌ Supabase 연결 테스트 실패:', error);
+      return {
+        success: false,
+        error: error.message,
+        code: error.code
+      };
+    }
+    
+    console.log('✅ Supabase 연결 테스트 성공');
+    return {
+      success: true,
+      data
+    };
+  } catch (error: any) {
+    console.error('❌ Supabase 연결 테스트 중 예외 발생:', error);
+    return {
+      success: false,
+      error: error.message
+    };
+  }
+};
 
 // 관리자 지갑 주소 목록
 const ADMIN_WALLETS = [
+  '0x8a627a75d04bf3c709154205dfbbb6f4ed10dcb0', // 현재 연결된 지갑
   '0x1234567890123456789012345678901234567890', // 예시 주소
-  '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd'  // 예시 주소
+  '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',  // 예시 주소
+  '0x742d35cc6634c0532925a3b8d4c9db96c4b4d8b6', // 추가 관리자 주소
+  '0x9b1a5f8709c6710650a010b4c9c16b1f9a5f8709', // 추가 관리자 주소
+  '0x1a2b3c4d5e6f7890123456789012345678901234', // 추가 관리자 주소
+  '0x5a6b7c8d9e0f1234567890123456789012345678', // 추가 관리자 주소
+  '0x9c8b7a6f5e4d3c2b1a098765432109876543210'   // 추가 관리자 주소
 ]
 
 // 사용자 권한 확인
@@ -52,12 +120,6 @@ const trackError = (error: any, context: string) => {
 // 웹소켓 연결 상태 확인
 export const checkWebSocketConnection = async () => {
   try {
-    // Supabase URL 확인
-    if (!config.NEXT_PUBLIC_SUPABASE_URL) {
-      console.warn('⚠️ Supabase URL이 설정되지 않았습니다.');
-      return false;
-    }
-
     // 간단한 쿼리로 연결 확인
     const { data, error } = await supabase
       .from('users')
@@ -72,7 +134,7 @@ export const checkWebSocketConnection = async () => {
     console.log('✅ WebSocket 연결 정상');
     return true;
   } catch (error) {
-    console.error('❌ WebSocket 연결 확인 오류:', error);
+    console.error('❌ WebSocket 연결 확인 중 오류:', error);
     return false;
   }
 };

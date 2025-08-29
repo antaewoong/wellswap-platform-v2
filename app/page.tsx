@@ -1,5 +1,7 @@
-import WellSwapGlobalPlatform from '../components/WellSwapComplete';
+'use client';
+
+import WellSwapComplete from '../components/WellSwapComplete';
 
 export default function Home() {
-  return <WellSwapGlobalPlatform />;
+  return <WellSwapComplete />;
 }

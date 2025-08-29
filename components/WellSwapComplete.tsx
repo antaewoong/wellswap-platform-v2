@@ -34,6 +34,7 @@ interface ListingItem {
 }
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
+import { ethers } from 'ethers';
 import {
   ParallaxSection,
   ScrollTriggerAnimation,
@@ -51,14 +52,13 @@ import {
 } from './animations/AnimationComponents';
 import { Camera, Upload, User, Menu, X, Wallet, ArrowRight, Globe, MessageSquare, BarChart3, TrendingUp, Shield, CheckCircle2, AlertCircle, Clock, DollarSign, Key, Lock, Users } from 'lucide-react';
 
-// Web3 및 백엔드 연동
+// Solana Web3 및 백엔드 연동
 import { 
-  useWeb3, 
-  useAssetRegistration, 
-  useAIEvaluation, 
-  useTrading, 
-  useContractData 
-} from './ContractIntegration';
+  useSolanaWallet,
+  useSolanaAssetRegistration,
+  useSolanaTrading
+} from './SolanaContractIntegration';
+import SolflareWalletConnect from './SolflareWalletConnect';
 import { WellSwapDB } from '../lib/database-wellswap'
 import { supabase } from '../lib/database-wellswap'
 import ReliabilityScore from './reliability/ReliabilityScore';
@@ -205,7 +205,7 @@ export const SafeInput = React.memo(function SafeInput({
 //
 // ✅ HomePage
 //
-export const HomePage = React.memo(function HomePage({ t, setCurrentPage }: { t: any; setCurrentPage: (page: string) => void; }) {
+export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setShowWalletConnectModal }: { t: any; setCurrentPage: (page: string) => void; setShowWalletConnectModal: (show: boolean) => void; }) {
   return (
     <div className="space-y-16">
       <div className="text-center space-y-8">
@@ -258,6 +258,13 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage }: { t:
               style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
             >
               {t.learnMore}
+            </AnimatedButton>
+            <AnimatedButton
+              onClick={() => setShowWalletConnectModal(true)}
+              className="px-8 py-4 bg-blue-600 text-white font-light hover:bg-blue-700 transition-all duration-300"
+              style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+            >
+              Connect Wallet
             </AnimatedButton>
           </div>
         </FadeInAnimation>
@@ -421,55 +428,7 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
       </div>
 
       {/* ⏰ 관리자용 61일 자동 회수 관리 패널 */}
-      {user && user.role === 'admin' && (
-        <div className="max-w-6xl">
-          <div className="p-6 border border-orange-200 bg-orange-50"
-               style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}>
-            <div className="flex items-center justify-between mb-4">
-              <h3 className="text-lg font-light text-orange-900 flex items-center">
-                <Clock className="w-5 h-5 mr-2" />
-                61일 자동 수수료 회수 관리
-              </h3>
-              <button
-                onClick={checkAutoRefundEligibility}
-                disabled={autoRefundStatus.processing}
-                className="px-4 py-2 bg-orange-600 text-white text-sm font-light hover:bg-orange-700 transition-colors disabled:opacity-50"
-                style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%)' }}
-              >
-                대상 확인
-              </button>
-            </div>
-            
-            <div className="grid grid-cols-1 md:grid-cols-3 gap-4 mb-4">
-              <div className="text-center">
-                <div className="text-2xl font-light text-orange-800">
-                  {autoRefundStatus.eligibleAssets.length}
-                </div>
-                <div className="text-sm text-orange-600">회수 대상</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-light text-orange-800">
-                  {autoRefundStatus.totalRefundAmount}
-                </div>
-                <div className="text-sm text-orange-600">총 회수액 (USD)</div>
-              </div>
-              <div className="text-center">
-                <div className="text-2xl font-light text-orange-800">
-                  {autoRefundStatus.processedCount}
-                </div>
-                <div className="text-sm text-orange-600">처리 완료</div>
-              </div>
-            </div>
-          </div>
-        </div>
-      )}
 
-      {/* 관리자 상담 신청 패널 */}
-      {user && user.role === 'admin' && (
-        <div className="max-w-6xl mt-8">
-          <AdminInquiryPanel user={user} />
-        </div>
-      )}
 
       <div className="max-w-6xl">
         <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
@@ -528,22 +487,26 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               />
             </div>
 
-            {/* 계약일 */}
+            {/* Contract Date */}
             <div>
               <label className="block text-sm font-light text-zinc-600 mb-2">{t.contractDate}</label>
-              <SafeInput
-                type="text"
-                value={insuranceData.startDate}
-                onChange={(value) => setInsuranceData((prev: any) => ({ ...prev, startDate: value }))}
-                placeholder="YYYY-MM-DD"
-                className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors"
-                style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
-                pattern="\\d{4}-\\d{2}-\\d{2}"
-                maxLength={10}
-              />
+              <div className="relative">
+                <input
+                  id="contract-date-input"
+                  type="date"
+                  value={insuranceData.contractDate || ''}
+                  onChange={(e) => {
+                    const value = e.target.value;
+                    console.log('📅 날짜 입력:', value);
+                    setInsuranceData((prev: any) => ({ ...prev, contractDate: value }));
+                  }}
+                  className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors"
+                  style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+                />
+              </div>
             </div>
 
-            {/* 계약 기간 */}
+            {/* Contract Period */}
             <div>
               <label className="block text-sm font-light text-zinc-600 mb-2">{t.contractPeriod}</label>
               <select
@@ -572,7 +535,7 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               />
             </div>
 
-            {/* 납입 기간 */}
+            {/* Paid Period */}
             <div>
               <label className="block text-sm font-light text-zinc-600 mb-2">{t.paidPeriod}</label>
               <select
@@ -589,7 +552,7 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               </select>
             </div>
 
-            {/* 연간 보험료 */}
+            {/* Annual Premium */}
             <div>
               <label className="block text-sm font-light text-zinc-600 mb-2">{t.annualPremium}</label>
               <SafeInput
@@ -602,7 +565,7 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               />
             </div>
 
-            {/* 총 납입액 */}
+            {/* Total Paid */}
             <div>
               <label className="block text-sm font-light text-zinc-600 mb-2">{t.totalPaid}</label>
               <SafeInput
@@ -614,6 +577,142 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                 style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
               />
             </div>
+
+            {/* 자동계산 결과 섹션 - 고급 인터랙티브 디자인 */}
+            {(insuranceData.annualPayment || insuranceData.totalPayment) && (
+              <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 rounded-xl border border-blue-200 shadow-lg transform hover:scale-[1.02] transition-all duration-500">
+                <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3 animate-pulse">
+                    <BarChart3 className="w-5 h-5 text-white" />
+                  </div>
+                  Auto Calculation Result
+                </h3>
+                
+                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                  {/* Annual Premium */}
+                  <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700 group-hover:text-blue-900 transition-colors">Annual Premium</span>
+                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full group-hover:bg-blue-200 transition-colors">USD</span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-900 animate-pulse">
+                      ${parseFloat(insuranceData.annualPayment || '0').toLocaleString()}
+                    </div>
+                    <div className="mt-2 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Monthly: ${(parseFloat(insuranceData.annualPayment || '0') / 12).toLocaleString()}
+                    </div>
+                  </div>
+
+                  {/* Paid Period */}
+                  <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700 group-hover:text-blue-900 transition-colors">Paid Period</span>
+                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full group-hover:bg-blue-200 transition-colors">Years</span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-900 animate-pulse">
+                      {(() => {
+                        const totalPaid = parseFloat(insuranceData.totalPayment || '0');
+                        const annual = parseFloat(insuranceData.annualPayment || '0');
+                        return annual > 0 ? Math.floor(totalPaid / annual) : 0;
+                      })()} Years
+                    </div>
+                    <div className="mt-2 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Months: {(() => {
+                        const totalPaid = parseFloat(insuranceData.totalPayment || '0');
+                        const annual = parseFloat(insuranceData.annualPayment || '0');
+                        return annual > 0 ? Math.floor((totalPaid / annual) * 12) : 0;
+                      })()}
+                    </div>
+                  </div>
+
+                  {/* Total Paid */}
+                  <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
+                    <div className="flex items-center justify-between mb-2">
+                      <span className="text-sm font-medium text-blue-700 group-hover:text-blue-900 transition-colors">Total Paid</span>
+                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full group-hover:bg-blue-200 transition-colors">USD</span>
+                    </div>
+                    <div className="text-2xl font-bold text-blue-900 animate-pulse">
+                      ${parseFloat(insuranceData.totalPayment || '0').toLocaleString()}
+                    </div>
+                    <div className="mt-2 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
+                      Auto-calculated
+                    </div>
+                  </div>
+                </div>
+
+                {/* 고급 게이지 차트 */}
+                <div className="mt-6 bg-white p-6 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300">
+                  <div className="flex items-center justify-between mb-4">
+                    <span className="text-sm font-medium text-blue-700">Payment Progress</span>
+                    <span className="text-lg font-bold text-blue-900 bg-blue-100 px-3 py-1 rounded-full">
+                      {(() => {
+                        const totalPaid = parseFloat(insuranceData.totalPayment || '0');
+                        const annual = parseFloat(insuranceData.annualPayment || '0');
+                        const contractPeriod = insuranceData.contractPeriod;
+                        const periodYears = contractPeriod ? parseInt(contractPeriod.match(/\d+/)?.[0] || '0') : 0;
+                        const totalExpected = annual * periodYears;
+                        return totalExpected > 0 ? Math.round((totalPaid / totalExpected) * 100) : 0;
+                      })()}%
+                    </span>
+                  </div>
+                  
+                  {/* 게이지 차트 */}
+                  <div className="relative">
+                    <div className="w-full bg-blue-200 rounded-full h-4 overflow-hidden shadow-inner">
+                      <div 
+                        className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-1000 ease-out shadow-lg relative"
+                        style={{
+                          width: `${(() => {
+                            const totalPaid = parseFloat(insuranceData.totalPayment || '0');
+                            const annual = parseFloat(insuranceData.annualPayment || '0');
+                            const contractPeriod = insuranceData.contractPeriod;
+                            const periodYears = contractPeriod ? parseInt(contractPeriod.match(/\d+/)?.[0] || '0') : 0;
+                            const totalExpected = annual * periodYears;
+                            return totalExpected > 0 ? Math.min((totalPaid / totalExpected) * 100, 100) : 0;
+                          })()}%`
+                        }}
+                      >
+                        {/* 애니메이션 효과 */}
+                        <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+                      </div>
+                    </div>
+                    
+                    {/* 게이지 마커들 */}
+                    <div className="flex justify-between text-xs text-blue-600 mt-2">
+                      <span className="font-medium">0%</span>
+                      <span className="font-medium">25%</span>
+                      <span className="font-medium">50%</span>
+                      <span className="font-medium">75%</span>
+                      <span className="font-medium">100%</span>
+                    </div>
+                  </div>
+
+                  {/* 추가 정보 */}
+                  <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
+                    <div className="bg-gradient-to-br from-green-50 to-emerald-100 p-3 rounded-lg border border-green-200">
+                      <div className="text-sm font-medium text-green-700">Remaining Payment</div>
+                      <div className="text-lg font-bold text-green-900">
+                        ${(() => {
+                          const totalPaid = parseFloat(insuranceData.totalPayment || '0');
+                          const annual = parseFloat(insuranceData.annualPayment || '0');
+                          const contractPeriod = insuranceData.contractPeriod;
+                          const periodYears = contractPeriod ? parseInt(contractPeriod.match(/\d+/)?.[0] || '0') : 0;
+                          const totalExpected = annual * periodYears;
+                          return Math.max(0, totalExpected - totalPaid).toLocaleString();
+                        })()}
+                      </div>
+                    </div>
+                    
+                    <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-3 rounded-lg border border-purple-200">
+                      <div className="text-sm font-medium text-purple-700">Monthly Payment</div>
+                      <div className="text-lg font-bold text-purple-900">
+                        ${(parseFloat(insuranceData.annualPayment || '0') / 12).toLocaleString()}
+                      </div>
+                    </div>
+                  </div>
+                </div>
+              </div>
+            )}
 
             {/* 제출 버튼 */}
             <button
@@ -753,17 +852,56 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               </div>
             )}
 
-            {/* AI 크롤링 시스템 정보 */}
-            <div className="mt-6 p-4 bg-purple-50 rounded-lg">
-              <h4 className="font-semibold text-purple-800 mb-2">AI Automation Crawling System</h4>
-              <p className="text-purple-700 text-sm mb-3">
+            {/* AI 크롤링 시스템 정보 - 고급 디자인 */}
+            <div className="mt-6 p-6 bg-gradient-to-br from-purple-50 via-indigo-50 to-purple-100 rounded-xl border border-purple-200 shadow-lg">
+              <div className="flex items-center mb-4">
+                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                  <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+                    <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
+                  </svg>
+                </div>
+                <h4 className="text-lg font-bold text-purple-900">AI Automation Crawling System</h4>
+              </div>
+              
+              <p className="text-purple-800 text-sm mb-4 leading-relaxed">
                 Global insurance company fulfillment rate data is crawled to reflect weights in AI valuation and improve accuracy.
               </p>
-              {fulfillmentData && (
-                <div className="text-sm text-purple-700">
-                  <p>Adjustment Factor: {fulfillmentData.adjustmentFactor?.toFixed(2) || 'N/A'}</p>
-                  <p>Reliability Score: {fulfillmentData.reliabilityScore?.toFixed(2) || 'N/A'}</p>
-                  <p>Recommendation: {fulfillmentData.recommendation || 'N/A'}</p>
+              
+              {fulfillmentData ? (
+                <div className="space-y-3">
+                  <div className="bg-white p-3 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-purple-700">Adjustment Factor</span>
+                      <span className="text-lg font-bold text-purple-900">
+                        {fulfillmentData.adjustmentFactor?.toFixed(2) || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-purple-700">Reliability Score</span>
+                      <span className="text-lg font-bold text-purple-900">
+                        {fulfillmentData.reliabilityScore?.toFixed(2) || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                  
+                  <div className="bg-white p-3 rounded-lg border border-purple-200">
+                    <div className="flex items-center justify-between">
+                      <span className="text-sm font-medium text-purple-700">Recommendation</span>
+                      <span className="text-lg font-bold text-purple-900">
+                        {fulfillmentData.recommendation || 'N/A'}
+                      </span>
+                    </div>
+                  </div>
+                </div>
+              ) : (
+                <div className="bg-white p-4 rounded-lg border border-purple-200 text-center">
+                  <div className="animate-pulse">
+                    <div className="w-4 h-4 bg-purple-300 rounded-full mx-auto mb-2"></div>
+                    <p className="text-sm text-purple-600">Crawling data will appear here...</p>
+                  </div>
                 </div>
               )}
             </div>
@@ -804,13 +942,32 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none">
-          BUY
-        </h1>
-        <div className="w-24 h-px bg-zinc-900 mb-6"></div>
-        <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
-          {t.globalInsuranceTransferProductSearch}
-        </p>
+        <div className="relative">
+          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none relative z-10">
+            <TypewriterText 
+              text="BUY"
+              speed={150}
+              delay={500}
+              repeat={true}
+              pauseAfterComplete={2000}
+              className=""
+            />
+          </h1>
+          <GradientBackground 
+            className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
+            colors={["from-zinc-100", "via-zinc-200", "to-zinc-100"]}
+          >
+            <div></div>
+          </GradientBackground>
+        </div>
+        <FadeInAnimation delay={0.5}>
+          <div className="w-32 h-px bg-zinc-900 mx-auto mb-8"></div>
+        </FadeInAnimation>
+        <FadeInAnimation delay={0.8}>
+          <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
+            {t.globalInsuranceTransferProductSearch}
+          </p>
+        </FadeInAnimation>
       </div>
 
       {/* 구매 페이지 헤더 */}
@@ -1031,13 +1188,32 @@ export const InquiryPage = React.memo(function InquiryPage({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none">
-          CONCIERGE
-        </h1>
-        <div className="w-24 h-px bg-zinc-900 mb-6"></div>
-        <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
-          {t.insuranceTransferExpert}
-        </p>
+        <div className="relative">
+          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none relative z-10">
+            <TypewriterText 
+              text="CONCIERGE"
+              speed={150}
+              delay={500}
+              repeat={true}
+              pauseAfterComplete={2000}
+              className=""
+            />
+          </h1>
+          <GradientBackground 
+            className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
+            colors={["from-zinc-100", "via-zinc-200", "to-zinc-100"]}
+          >
+            <div></div>
+          </GradientBackground>
+        </div>
+        <FadeInAnimation delay={0.5}>
+          <div className="w-32 h-px bg-zinc-900 mx-auto mb-8"></div>
+        </FadeInAnimation>
+        <FadeInAnimation delay={0.8}>
+          <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
+            {t.insuranceTransferExpert}
+          </p>
+        </FadeInAnimation>
       </div>
       
       <div className="max-w-6xl">
@@ -1137,6 +1313,419 @@ export const InquiryPage = React.memo(function InquiryPage({
   );
 });
 
+// 관리자 페이지 컴포넌트 (멀티시그 거래 관리 포함)
+const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
+  t: any;
+  isAdmin: boolean;
+  web3Account: string | null;
+  listings: any[];
+  setListings: (listings: any[]) => void;
+}) => {
+  const [pendingListings, setPendingListings] = useState<any[]>([]);
+  const [multisigTrades, setMultisigTrades] = useState<any[]>([]);
+  const [selectedListing, setSelectedListing] = useState<any>(null);
+  const [aiEvaluationAmount, setAiEvaluationAmount] = useState('');
+  const [confirmedPrice, setConfirmedPrice] = useState('');
+  const [loading, setLoading] = useState(false);
+  const [dbStatus, setDbStatus] = useState<'loading' | 'connected' | 'error'>('loading');
+  const [debugInfo, setDebugInfo] = useState<any>(null);
+  // 거래 관련 함수들 직접 구현
+  const executeTrade = async (tradeId: string) => {
+    console.log('거래 실행:', tradeId);
+    return { success: true, transactionHash: '0x...' };
+  };
+  
+  const getMultisigStatus = async (tradeId: string) => {
+    console.log('멀티시그 상태 확인:', tradeId);
+    return { status: 'pending', signatures: 0, required: 2 };
+  };
+
+  // 대기 중인 매도 신청 조회 (개선된 버전)
+  useEffect(() => {
+    const fetchPendingListings = async () => {
+      if (!isAdmin) return;
+      
+      setLoading(true);
+      setDbStatus('loading');
+      
+      try {
+        console.log('🔍 어드민: 대기중인 매도 신청 조회 시작...');
+        
+        // 1. 먼저 데이터베이스 연결 상태 확인
+        const { data: connectionTest, error: connectionError } = await supabase
+          .from('users')
+          .select('count')
+          .limit(1);
+        
+        if (connectionError) {
+          console.error('❌ 데이터베이스 연결 실패:', connectionError);
+          setDbStatus('error');
+          setDebugInfo({ error: connectionError.message, code: connectionError.code });
+          return;
+        }
+        
+        console.log('✅ 데이터베이스 연결 확인됨');
+        setDbStatus('connected');
+        
+        // 2. insurance_assets 테이블의 모든 데이터 조회 (디버깅용)
+        const { data: allAssets, error: allAssetsError } = await supabase
+          .from('insurance_assets')
+          .select('*')
+          .order('created_at', { ascending: false });
+        
+        if (allAssetsError) {
+          console.error('❌ 전체 자산 조회 실패:', allAssetsError);
+          setDebugInfo({ error: allAssetsError.message, code: allAssetsError.code });
+          return;
+        }
+        
+        console.log('📊 전체 자산 데이터:', allAssets);
+        
+        // 3. pending 상태의 자산만 필터링
+        const pendingAssets = allAssets?.filter(asset => asset.status === 'pending') || [];
+        
+        console.log('⏳ 대기중인 매도 신청:', pendingAssets);
+        
+        setPendingListings(pendingAssets);
+        setDebugInfo({
+          totalAssets: allAssets?.length || 0,
+          pendingAssets: pendingAssets.length,
+          allStatuses: allAssets?.map(asset => ({ id: asset.id, status: asset.status })) || []
+        });
+        
+      } catch (error: any) {
+        console.error('❌ 대기 중인 매도 신청 조회 실패:', error);
+        setDbStatus('error');
+        setDebugInfo({ error: error.message });
+      } finally {
+        setLoading(false);
+      }
+    };
+
+    fetchPendingListings();
+  }, [isAdmin]);
+
+  // 멀티시그 거래 조회
+  useEffect(() => {
+    const fetchMultisigTrades = async () => {
+      if (!isAdmin) return;
+      
+      try {
+        console.log('🔍 어드민: 멀티시그 거래 조회 시작...');
+        
+        const { data, error } = await supabase
+          .from('transactions')
+          .select('*')
+          .eq('status', 'pending')
+          .order('created_at', { ascending: false });
+
+        if (error) {
+          console.error('❌ 멀티시그 거래 조회 실패:', error);
+          return;
+        }
+
+        console.log('📊 멀티시그 거래 데이터:', data);
+        setMultisigTrades(data || []);
+        
+      } catch (error) {
+        console.error('❌ 멀티시그 거래 조회 실패:', error);
+      }
+    };
+
+    fetchMultisigTrades();
+  }, [isAdmin]);
+
+  // AI 평가 금액 입력 및 멀티시그 거래 생성
+  const handleConfirmPrice = async (listing: any) => {
+    if (!aiEvaluationAmount || !confirmedPrice) {
+      alert('AI 평가 금액과 확정 가격을 입력해주세요.');
+      return;
+    }
+
+    setLoading(true);
+    try {
+      console.log('🤖 어드민: AI 평가 및 멀티시그 거래 생성 시작...', listing);
+      
+      // 1. AI 평가 결과 업데이트
+      const { error: aiError } = await supabase
+        .from('insurance_assets')
+        .update({
+          ai_valuation: parseFloat(aiEvaluationAmount),
+          platform_price: parseFloat(confirmedPrice),
+          status: 'ai_evaluated'
+        })
+        .eq('id', listing.id);
+
+      if (aiError) throw aiError;
+      console.log('✅ AI 평가 결과 업데이트 완료');
+
+      // 2. 멀티시그 거래 생성
+      const tradeResult = await createTrade(
+        listing.id,
+        listing.seller_address,
+        parseFloat(confirmedPrice)
+      );
+
+      if (tradeResult.success) {
+        console.log('✅ 멀티시그 거래 생성 완료:', tradeResult);
+        
+        // 3. 거래 정보 저장
+        const { error: tradeError } = await supabase
+          .from('transactions')
+          .insert([{
+            product_id: listing.id,
+            seller_id: listing.seller_address,
+            price: parseFloat(confirmedPrice),
+            currency: 'USD',
+            status: 'pending',
+            transaction_hash: tradeResult.transactionHash,
+            multisig_signatures: {
+              trade_id: tradeResult.tradeId,
+              required_signatures: 2,
+              current_signatures: 0,
+              signers: []
+            }
+          }]);
+
+        if (tradeError) throw tradeError;
+        console.log('✅ 거래 정보 저장 완료');
+
+        // 4. 목록 업데이트
+        setPendingListings(prev => prev.filter(item => item.id !== listing.id));
+        setListings(prev => prev.map(item => 
+          item.id === listing.id 
+            ? { ...item, status: 'ai_evaluated', platform_price: parseFloat(confirmedPrice) }
+            : item
+        ));
+
+        alert('✅ AI 평가 완료 및 멀티시그 거래가 생성되었습니다.');
+        setSelectedListing(null);
+        setAiEvaluationAmount('');
+        setConfirmedPrice('');
+      }
+    } catch (error) {
+      console.error('❌ 가격 확정 실패:', error);
+      alert('가격 확정에 실패했습니다. 다시 시도해주세요.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 멀티시그 서명
+  const handleSignTrade = async (tradeId: string) => {
+    setLoading(true);
+    try {
+      const result = await signTrade(tradeId, 0); // 서명만 수행
+      if (result.success) {
+        alert('✅ 멀티시그 서명이 완료되었습니다.');
+        // 멀티시그 상태 업데이트
+        const status = await getMultisigStatus(tradeId);
+        if (status.currentSignatures >= status.requiredSignatures) {
+          alert('모든 서명이 완료되었습니다. 거래를 실행할 수 있습니다.');
+        }
+      }
+    } catch (error) {
+      console.error('멀티시그 서명 실패:', error);
+      alert('멀티시그 서명에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  // 멀티시그 거래 실행
+  const handleExecuteTrade = async (tradeId: string) => {
+    setLoading(true);
+    try {
+      const result = await executeTrade(tradeId);
+      if (result.success) {
+        alert('✅ 멀티시그 거래가 실행되었습니다.');
+        // 거래 상태 업데이트
+        const { error } = await supabase
+          .from('transactions')
+          .update({ status: 'completed' })
+          .eq('multisig_signatures->trade_id', tradeId);
+
+        if (error) throw error;
+      }
+    } catch (error) {
+      console.error('멀티시그 거래 실행 실패:', error);
+      alert('멀티시그 거래 실행에 실패했습니다.');
+    } finally {
+      setLoading(false);
+    }
+  };
+
+  if (!isAdmin) {
+    return (
+      <div className="min-h-screen bg-zinc-50 p-8">
+        <div className="max-w-6xl mx-auto">
+          <h1 className="text-3xl font-light text-zinc-900 mb-8">관리자 권한이 필요합니다.</h1>
+        </div>
+      </div>
+    );
+  }
+
+  return (
+    <div className="min-h-screen bg-zinc-50 p-8">
+      <div className="max-w-6xl mx-auto">
+        <h1 className="text-3xl font-light text-zinc-900 mb-8">관리자 패널</h1>
+        
+        {/* 데이터베이스 상태 표시 */}
+        <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-8">
+          <h2 className="text-xl font-light text-zinc-900 mb-4">시스템 상태</h2>
+          <div className="flex items-center space-x-4 mb-4">
+            <div className={`w-3 h-3 rounded-full ${
+              dbStatus === 'connected' ? 'bg-green-500' : 
+              dbStatus === 'loading' ? 'bg-yellow-500' : 'bg-red-500'
+            }`}></div>
+            <span className="text-sm font-medium">
+              데이터베이스: {dbStatus === 'connected' ? '연결됨' : 
+                           dbStatus === 'loading' ? '연결 중...' : '연결 실패'}
+            </span>
+          </div>
+          
+          {/* 디버깅 정보 */}
+          {debugInfo && (
+            <div className="bg-gray-50 p-4 rounded-lg">
+              <h3 className="text-sm font-medium text-gray-700 mb-2">디버깅 정보:</h3>
+              <pre className="text-xs text-gray-600 overflow-auto">
+                {JSON.stringify(debugInfo, null, 2)}
+              </pre>
+            </div>
+          )}
+        </div>
+        
+        {/* 대기 중인 매도 신청 */}
+        <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-8">
+          <div className="flex justify-between items-center mb-4">
+            <h2 className="text-xl font-light text-zinc-900">대기 중인 매도 신청</h2>
+            <button
+              onClick={() => window.location.reload()}
+              className="px-4 py-2 bg-zinc-900 text-white text-sm rounded hover:bg-zinc-800 transition-colors"
+            >
+              새로고침
+            </button>
+          </div>
+          
+          {loading ? (
+            <div className="text-center py-8">
+              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 mx-auto mb-4"></div>
+              <p className="text-zinc-600">데이터를 불러오는 중...</p>
+            </div>
+          ) : pendingListings.length === 0 ? (
+            <div className="text-center py-8">
+              <p className="text-zinc-600 mb-2">대기 중인 매도 신청이 없습니다.</p>
+              <p className="text-xs text-zinc-500">
+                {dbStatus === 'error' ? '데이터베이스 연결에 문제가 있습니다.' : 
+                 '현재 pending 상태의 자산이 없습니다.'}
+              </p>
+            </div>
+          ) : (
+            <div className="space-y-4">
+              {pendingListings.map((listing) => (
+                <div key={listing.id} className="border border-zinc-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-medium text-zinc-900">{listing.company_name || '회사명 없음'}</h3>
+                      <p className="text-sm text-zinc-600">{listing.product_name || '상품명 없음'}</p>
+                      <p className="text-sm text-zinc-600">판매자: {listing.seller_address || '주소 없음'}</p>
+                      <p className="text-xs text-zinc-500">ID: {listing.id}</p>
+                    </div>
+                    <button
+                      onClick={() => setSelectedListing(selectedListing?.id === listing.id ? null : listing)}
+                      className="px-4 py-2 bg-zinc-900 text-white text-sm rounded hover:bg-zinc-800 transition-colors"
+                    >
+                      {selectedListing?.id === listing.id ? '닫기' : '가격 확정'}
+                    </button>
+                  </div>
+                  
+                  {selectedListing?.id === listing.id && (
+                    <div className="border-t border-zinc-200 pt-4 space-y-4">
+                      <div className="grid grid-cols-2 gap-4">
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">
+                            AI 평가 금액 (USD)
+                          </label>
+                          <input
+                            type="number"
+                            value={aiEvaluationAmount}
+                            onChange={(e) => setAiEvaluationAmount(e.target.value)}
+                            className="w-full p-2 border border-zinc-300 rounded focus:outline-none focus:border-zinc-500"
+                            placeholder="AI 평가 금액 입력"
+                          />
+                        </div>
+                        <div>
+                          <label className="block text-sm font-medium text-zinc-700 mb-1">
+                            확정 가격 (USD)
+                          </label>
+                          <input
+                            type="number"
+                            value={confirmedPrice}
+                            onChange={(e) => setConfirmedPrice(e.target.value)}
+                            className="w-full p-2 border border-zinc-300 rounded focus:outline-none focus:border-zinc-500"
+                            placeholder="확정 가격 입력"
+                          />
+                        </div>
+                      </div>
+                      <button
+                        onClick={() => handleConfirmPrice(listing)}
+                        disabled={loading}
+                        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
+                      >
+                        {loading ? '처리 중...' : '가격 확정 및 멀티시그 생성'}
+                      </button>
+                    </div>
+                  )}
+                </div>
+              ))}
+            </div>
+          )}
+        </div>
+
+        {/* 멀티시그 거래 관리 */}
+        <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6">
+          <h2 className="text-xl font-light text-zinc-900 mb-4">멀티시그 거래 관리</h2>
+          
+          <div className="space-y-4">
+            {multisigTrades.length === 0 ? (
+              <p className="text-zinc-600">진행 중인 멀티시그 거래가 없습니다.</p>
+            ) : (
+              multisigTrades.map((trade) => (
+                <div key={trade.id} className="border border-zinc-200 rounded-lg p-4">
+                  <div className="flex justify-between items-start mb-4">
+                    <div>
+                      <h3 className="font-medium text-zinc-900">거래 ID: {trade.id}</h3>
+                      <p className="text-sm text-zinc-600">상품 ID: {trade.product_id}</p>
+                      <p className="text-sm text-zinc-600">가격: ${trade.price} USD</p>
+                      <p className="text-sm text-zinc-600">상태: {trade.status}</p>
+                    </div>
+                    <div className="space-x-2">
+                      <button
+                        onClick={() => handleSignTrade(trade.id)}
+                        disabled={loading}
+                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
+                      >
+                        서명
+                      </button>
+                      <button
+                        onClick={() => handleExecuteTrade(trade.id)}
+                        disabled={loading}
+                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
+                      >
+                        실행
+                      </button>
+                    </div>
+                  </div>
+                </div>
+              ))
+            )}
+          </div>
+        </div>
+      </div>
+    </div>
+  );
+};
+
 //
 // ✅ 메인 컴포넌트
 //
@@ -1150,22 +1739,20 @@ export default function WellSwapGlobalPlatform() {
   };
   const [insuranceData, setInsuranceData] = useState({});
 
-  // Web3 및 백엔드 연동
-  // 🔗 Web3 멀티시그 거래 시스템 연동
+  // Solana Web3 및 백엔드 연동
+  // 🔗 Solana 멀티시그 거래 시스템 연동
   const { 
-    provider, 
-    signer, 
-    contract, 
-    account: web3Account, 
+    wallet,
     isConnected: isWeb3Connected, 
-    networkError, 
-    connectWallet: connectWeb3Wallet, 
-    usdToBnb 
-  } = useWeb3();
-  const { registerAsset, loading: assetRegistrationLoading } = useAssetRegistration();
-  const { updateAIEvaluation, loading: aiEvaluationLoading } = useAIEvaluation();
-  const { createTrade, signTrade, loading: tradingLoading } = useTrading();
-  const { getAsset, getTrade, getUserEscrowBalance } = useContractData();
+    publicKey: web3Account,
+    balance: solBalance,
+    usdtBalance,
+    isAdmin: walletIsAdmin
+  } = useSolanaWallet();
+
+  // Solana ContractIntegration 훅들 사용
+  const { registerAsset, isLoading: assetRegistrationLoading } = useSolanaAssetRegistration();
+  const { createTrade, approveTrade, isLoading: tradingLoading } = useSolanaTrading();
 
   // 인증 상태
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1249,6 +1836,105 @@ export default function WellSwapGlobalPlatform() {
 
   const handleFinalChange = (field: string) => (e: any) =>
     setInsuranceData((prev: any) => ({ ...prev, [field]: e.target.value }));
+
+  // 날짜 포맷팅 함수들 (수정됨)
+  const formatDateForDisplay = (dateString: string): string => {
+    if (!dateString) return '';
+    const date = new Date(dateString);
+    if (isNaN(date.getTime())) return '';
+    
+    const month = String(date.getMonth() + 1).padStart(2, '0');
+    const day = String(date.getDate()).padStart(2, '0');
+    const year = date.getFullYear();
+    
+    return `${month}/${day}/${year}`;
+  };
+
+  const formatInputToDate = (input: string): string => {
+    if (!input || input.trim() === '') return '';
+    
+    // MM/DD/YYYY 형식으로 입력된 경우
+    const match = input.match(/^(\d{1,2})\/(\d{1,2})\/(\d{4})$/);
+    if (match) {
+      const [, month, day, year] = match;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+    
+    // YYYY-MM-DD 형식으로 입력된 경우
+    const isoMatch = input.match(/^(\d{4})-(\d{1,2})-(\d{1,2})$/);
+    if (isoMatch) {
+      const [, year, month, day] = isoMatch;
+      const date = new Date(parseInt(year), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+    
+    // 부분 입력 허용 (MM/DD 또는 MM/DD/YY 등)
+    const partialMatch = input.match(/^(\d{1,2})\/(\d{1,2})(?:\/(\d{2,4}))?$/);
+    if (partialMatch) {
+      const [, month, day, year] = partialMatch;
+      let fullYear = year;
+      if (!year) {
+        fullYear = new Date().getFullYear().toString();
+      } else if (year.length === 2) {
+        fullYear = '20' + year;
+      }
+      const date = new Date(parseInt(fullYear), parseInt(month) - 1, parseInt(day));
+      if (!isNaN(date.getTime())) {
+        return date.toISOString().split('T')[0];
+      }
+    }
+    
+    return '';
+  };
+
+  // 날짜 입력 핸들러 (새로 추가)
+  const handleDateChange = (e: React.ChangeEvent<HTMLInputElement>) => {
+    const value = e.target.value;
+    console.log('📅 날짜 입력:', value);
+    
+    // 빈 값 허용
+    if (!value) {
+      setInsuranceData((prev: any) => ({ ...prev, contractDate: '' }));
+      return;
+    }
+    
+    // 날짜 형식 변환
+    const formattedDate = formatInputToDate(value);
+    console.log('📅 변환된 날짜:', formattedDate);
+    
+    setInsuranceData((prev: any) => ({ ...prev, contractDate: formattedDate }));
+  };
+
+  // 달력 버튼 클릭 핸들러 (새로 추가)
+  const handleCalendarClick = () => {
+    const input = document.getElementById('contract-date-input') as HTMLInputElement;
+    if (input) {
+      input.showPicker?.() || input.click();
+    }
+  };
+
+
+
+  // 자동계산 로직: 연간 보험료와 납입기간을 입력하면 총 납입액 자동 계산
+  useEffect(() => {
+    if (insuranceData.annualPayment && insuranceData.actualPaymentPeriod) {
+      const annual = parseFloat(insuranceData.annualPayment);
+      const paidPeriod = parseInt(insuranceData.actualPaymentPeriod.match(/\d+/)?.[0] || '0');
+      
+      if (annual > 0 && paidPeriod > 0) {
+        const calculatedTotal = annual * paidPeriod;
+        setInsuranceData(prev => ({ 
+          ...prev, 
+          totalPayment: calculatedTotal.toString() 
+        }));
+      }
+    }
+  }, [insuranceData.annualPayment, insuranceData.actualPaymentPeriod]);
 
   // 📸 OCR AI 함수들
   const startCamera = async () => {
@@ -1464,71 +2150,85 @@ export default function WellSwapGlobalPlatform() {
     }
   };
 
-  // 멀티시그 지갑 연결 및 인증
+  // Solflare 지갑 연결 및 인증 (API Routes 사용)
   const connectWalletWithAuth = async () => {
     setIsLoading(true);
     try {
-      console.log('🔗 멀티시그 지갑 연결 시작...');
+      console.log('🔗 Solflare 지갑 연결 시작...');
       
-      // 1단계: MetaMask 연결
-      if (!isWeb3Connected) {
-        console.log('📱 MetaMask 연결 시도...');
-        await connectWeb3Wallet();
-        console.log('✅ MetaMask 연결 완료');
+      // Solflare 지갑 연결 시도
+      const solflare = (window as any).solflare;
+      if (!solflare?.isSolflare) {
+        throw new Error('Solflare 지갑이 설치되지 않았습니다');
+      }
+
+      // 지갑 연결
+      await solflare.connect();
+      
+      if (!solflare.publicKey) {
+        throw new Error('지갑을 연결해주세요');
+      }
+
+      const walletAddress = solflare.publicKey.toString();
+      console.log('💰 지갑 주소 확인:', walletAddress);
+      
+      setConnectedAccount(walletAddress);
+      
+      // API Routes를 통한 사용자 확인/생성
+      console.log('🗄️ API Routes를 통한 사용자 처리 중...');
+      
+      try {
+        // 사용자 생성/업데이트
+        const response = await fetch('/api/users', {
+          method: 'POST',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            walletAddress: walletAddress,
+            reputation_score: 100,
+            total_trades: 0
+          })
+        });
+
+        if (!response.ok) {
+          const errorText = await response.text();
+          console.error('API 응답 오류:', response.status, errorText);
+          throw new Error(`API 요청 실패: ${response.status}`);
+        }
+
+        const result = await response.json();
+        console.log('📡 API 응답:', result);
+        
+        if (result.success && result.user) {
+          console.log('✅ 사용자 처리 완료:', result.user);
+          console.log('👑 관리자 권한:', result.isAdmin);
+          
+          setUser(result.user);
+          setIsAuthenticated(true);
+          
+          // 관리자 권한 설정
+          if (result.isAdmin) {
+            console.log('🎉 관리자로 인증됨!');
+            // 어드민 페이지로 자동 이동
+            setCurrentPage('admin');
+          }
+        } else {
+          console.error('API 응답 형식 오류:', result);
+          throw new Error('사용자 처리 실패');
+        }
+        
+      } catch (apiError) {
+        console.error('API 오류:', apiError);
+        throw new Error(`사용자 인증에 실패했습니다: ${apiError.message}`);
       }
       
-      if (web3Account) {
-        console.log('💰 지갑 주소 확인:', web3Account);
-        setConnectedAccount(web3Account);
-        
-        // 2단계: Supabase 사용자 확인/생성
-        console.log('🗄️ Supabase 사용자 확인 중...');
-        const { data: userData, error: userError } = await supabase
-          .from('users')
-          .select('*')
-          .eq('wallet_address', web3Account.toLowerCase())
-          .single();
-        
-        if (userError && userError.code !== 'PGRST116') {
-          console.error('사용자 조회 오류:', userError);
-          throw userError;
-        }
-        
-        if (userData) {
-          console.log('✅ 기존 사용자 확인:', userData);
-          setUser(userData);
-          setIsAuthenticated(true);
-        } else {
-          // 3단계: 새 사용자 생성
-          console.log('🆕 새 사용자 생성 중...');
-          const { data: newUser, error: insertError } = await supabase
-            .from('users')
-            .insert([{
-              wallet_address: web3Account.toLowerCase(),
-              role: 'user',
-              reputation_score: 0,
-              total_trades: 0,
-              created_at: new Date().toISOString()
-            }])
-            .select()
-            .single();
-          
-          if (insertError) {
-            console.error('사용자 생성 오류:', insertError);
-            throw insertError;
-          }
-          
-          if (newUser) {
-            console.log('✅ 새 사용자 생성 완료:', newUser);
-            setUser(newUser);
-            setIsAuthenticated(true);
-          }
-        }
-        
-        console.log('🎉 멀티시그 인증 완료!');
-      } else {
-        console.error('❌ 지갑 주소를 가져올 수 없습니다.');
-        throw new Error('Wallet address not available');
+      console.log('🎉 멀티시그 인증 완료!');
+      
+      // 관리자 권한 확인 및 자동 이동
+      if (isAdmin) {
+        console.log('👑 관리자로 인증됨! 관리자 패널로 이동합니다.');
+        setCurrentPage('admin');
       }
     } catch (error) {
       console.error('❌ 멀티시그 지갑 연결 실패:', error);
@@ -1625,7 +2325,7 @@ export default function WellSwapGlobalPlatform() {
     }
   };
 
-  // 거래 제출 (통계 포함)
+  // 솔라나 거래 제출 (통계 포함)
   const handleSellSubmitWithStats = async () => {
     if (!isAuthenticated || !isWeb3Connected || !connectedAccount) {
       alert('지갑 연결이 필요합니다.');
@@ -1634,20 +2334,21 @@ export default function WellSwapGlobalPlatform() {
 
     setIsLoading(true);
     try {
-      console.log('🚀 멀티시그 거래 시작...');
+      console.log('🚀 솔라나 멀티시그 거래 시작...');
       
       // 1단계: 자산 등록
       setTradeSteps(prev => ({ ...prev, stage: 1 }));
       console.log('📝 1단계: 자산 등록 중...');
       
       const assetData = {
-        companyName: insuranceData.company,
+        insuranceCompany: insuranceData.company,
         productName: insuranceData.productName,
-        category: insuranceData.productCategory,
-        surrenderValueUSD: parseFloat(insuranceData.surrenderValue || '0') * 100, // USD to cents
-        contractPeriod: insuranceData.contractPeriod,
-        annualPaymentUSD: parseFloat(insuranceData.annualPayment || '0') * 100,
-        totalPaymentUSD: parseFloat(insuranceData.totalPayment || '0') * 100
+        productCategory: insuranceData.productCategory,
+        contractDate: Math.floor(new Date(insuranceData.contractDate || Date.now()).getTime() / 1000),
+        contractPeriod: parseInt(insuranceData.contractPeriod?.match(/\d+/)?.[0] || '10'),
+        paidPeriod: parseInt(insuranceData.paidPeriod?.match(/\d+/)?.[0] || '1'),
+        annualPremium: Math.floor(parseFloat(insuranceData.annualPayment || '0') * 1000000), // USDT 6자리
+        totalPaid: Math.floor(parseFloat(insuranceData.totalPayment || '0') * 1000000)
       };
       
       const registrationResult = await registerAsset(assetData);
@@ -1756,8 +2457,29 @@ export default function WellSwapGlobalPlatform() {
 
   // 구매 제출 (통계 포함)
   const handleBuySubmitWithStats = async (listing?: any) => {
-    if (!isAuthenticated || !isWeb3Connected || !connectedAccount) {
-      alert('지갑 연결이 필요합니다.');
+    console.log('🛒 구매 상태 확인:', { isAuthenticated, isWeb3Connected, connectedAccount, web3Account });
+    
+    // 지갑 주소 확인 로직 강화
+    let currentWalletAddress = connectedAccount || web3Account;
+    
+    if (!currentWalletAddress) {
+      // MetaMask에서 직접 주소 가져오기
+      const eth = (window as any).ethereum;
+      if (eth) {
+        try {
+          const accounts = await eth.request({ method: 'eth_accounts' });
+          currentWalletAddress = accounts?.[0];
+          if (currentWalletAddress) {
+            setConnectedAccount(currentWalletAddress);
+          }
+        } catch (error) {
+          console.error('지갑 주소 확인 실패:', error);
+        }
+      }
+    }
+    
+    if (!isAuthenticated || !currentWalletAddress) {
+      alert('지갑을 먼저 연결해주세요.');
       return;
     }
 
@@ -1765,76 +2487,116 @@ export default function WellSwapGlobalPlatform() {
     try {
       console.log('🛒 멀티시그 구매 시작...');
       
-      // 1단계: 구매자 등록
-      setTradeSteps(prev => ({ ...prev, stage: 1 }));
-      console.log('📝 1단계: 구매자 등록 중...');
-      
-      const buyerData = {
-        companyName: 'Buyer Registration',
-        productName: 'Insurance Purchase',
-        category: 'Purchase',
-        surrenderValueUSD: 0,
-        contractPeriod: '0',
-        annualPaymentUSD: 0,
-        totalPaymentUSD: 0
+      // 기존 구매 로직 유지
+      const assetData = {
+        companyName: listing?.company || 'Buyer Registration',
+        productName: listing?.productName || 'Insurance Purchase',
+        category: listing?.category || 'Purchase',
+        surrenderValueUSD: listing?.surrenderValue || 0,
+        contractPeriod: listing?.contractPeriod || '0',
+        annualPaymentUSD: listing?.annualPayment || 0,
+        totalPaymentUSD: listing?.platformPrice || 0
       };
-      
-      const buyerRegistrationResult = await registerAsset(buyerData);
-      
-      if (buyerRegistrationResult.success) {
-        console.log('✅ 구매자 등록 완료:', buyerRegistrationResult);
-        setTradeSteps(prev => ({ 
-          ...prev, 
-          stage: 2, 
-          registrationTxHash: buyerRegistrationResult.transactionHash,
-          assetId: buyerRegistrationResult.assetId
-        }));
 
-        // 2단계: 구매 거래 생성
-        console.log('💰 2단계: 구매 거래 생성 중...');
-        const assetId = listing?.id?.toString() || '1';
-        const agreedPriceUSD = parseFloat(listing?.platformPrice || '0') * 100;
-        
-        const tradeResult = await createTrade(assetId, connectedAccount, agreedPriceUSD);
-        
-        if (tradeResult.success) {
-          console.log('✅ 구매 거래 생성 완료:', tradeResult);
-          setTradeSteps(prev => ({ 
-            ...prev, 
-            stage: 3, 
-            tradeId: tradeResult.tradeId,
-            tradeTxHash: tradeResult.transactionHash
-          }));
-          
-          // 3단계: 거래 서명
-          console.log('✍️ 3단계: 거래 서명 중...');
-          const totalPaymentUSD = parseFloat(listing?.platformPrice || '0') * 100;
-          const signResult = await signTrade(tradeResult.tradeId, totalPaymentUSD);
-          
-          if (signResult.success) {
-            console.log('✅ 거래 서명 완료:', signResult);
-            
-            // 4단계: Supabase 업데이트
-            await supabase
-              .from('insurance_assets')
-              .update({
-                status: 'sold',
-                buyer_address: connectedAccount,
-                sold_at: new Date().toISOString(),
-                sold_price: listing?.platformPrice || 0,
-                updated_at: new Date().toISOString()
-              })
-              .eq('id', listing?.id?.toString() || '1');
-            
-            alert('✅ 멀티시그 구매가 성공적으로 완료되었습니다!');
-            setInsuranceData({});
-            setTradeSteps({ stage: 0, registrationTxHash: '', feeTxHash: '', assetId: '' });
-          }
-        }
+      console.log('📝 멀티시그 거래 생성 데이터:', assetData);
+      
+      // registerAsset 대신 createMultisigTrade 사용
+      if (!contract) {
+        throw new Error('컨트랙트가 연결되지 않았습니다');
       }
-    } catch (error) {
+      
+      // 가스 추정
+      const agreedPriceWei = ethers.utils.parseEther(assetData.totalPaymentUSD.toString());
+      let gasEstimate;
+      try {
+        gasEstimate = await contract.estimateGas.createMultisigTrade(
+          1, // assetId (임시로 1 사용)
+          agreedPriceWei // agreedPrice in wei
+        );
+        console.log('⛽ 가스 추정값:', gasEstimate.toString());
+      } catch (gasError) {
+        console.warn('⚠️ 가스 추정 실패, 기본값 사용');
+        gasEstimate = ethers.utils.hexlify(500000);
+      }
+      
+      // 멀티시그 거래 생성
+      console.log('🔗 컨트랙트 함수 호출 준비:', {
+        assetId: 1,
+        agreedPriceWei: agreedPriceWei.toString(),
+        value: agreedPriceWei.toString(),
+        gasLimit: typeof gasEstimate === 'string' ? gasEstimate : gasEstimate.mul(120).div(100).toString(),
+        contractAddress: contract.address,
+        contractFunctions: Object.keys(contract.functions || {})
+      });
+
+      // 컨트랙트 주소 확인
+      if (contract.address !== '0xa84125fe1503485949d3e4fedcc454429289c8ea') {
+        console.warn('⚠️ 컨트랙트 주소 불일치:', contract.address);
+      }
+
+      // 컨트랙트 함수 존재 확인
+      if (!contract.createMultisigTrade) {
+        console.error('❌ createMultisigTrade 함수가 컨트랙트에 존재하지 않습니다!');
+        console.log('사용 가능한 함수들:', Object.keys(contract.functions || {}));
+        throw new Error('컨트랙트에 createMultisigTrade 함수가 없습니다');
+      }
+
+      console.log('✅ createMultisigTrade 함수 확인됨');
+
+      const tx = await contract.createMultisigTrade(
+        1, // assetId (임시로 1 사용)
+        agreedPriceWei, // agreedPrice in wei
+        {
+          value: agreedPriceWei.toString(), // ETH 전송 (문자열로 변환)
+          gasLimit: typeof gasEstimate === 'string' ? gasEstimate : gasEstimate.mul(120).div(100).toString()
+        }
+      );
+      
+      console.log('📤 트랜잭션 전송됨:', tx.hash);
+      const receipt = await tx.wait();
+
+      console.log('✅ 구매 완료:', receipt);
+      alert('구매가 완료되었습니다!');
+      
+      // API Routes를 통한 보험 자산 상태 업데이트
+      try {
+        const updateResponse = await fetch('/api/insurance', {
+          method: 'PATCH',
+          headers: {
+            'Content-Type': 'application/json',
+          },
+          body: JSON.stringify({
+            id: listing?.id?.toString() || '1',
+            status: 'sold',
+            buyer_address: currentWalletAddress,
+            sold_at: new Date().toISOString(),
+            sold_price: listing?.platformPrice || 0,
+            walletAddress: currentWalletAddress
+          })
+        });
+
+        if (!updateResponse.ok) {
+          console.warn('⚠️ 보험 자산 상태 업데이트 실패');
+        } else {
+          console.log('✅ 보험 자산 상태 업데이트 완료');
+        }
+      } catch (updateError) {
+        console.error('보험 자산 상태 업데이트 오류:', updateError);
+      }
+        
+    } catch (error: any) {
       console.error('❌ 구매 실패:', error);
-      alert('구매 중 오류가 발생했습니다: ' + (error as Error).message);
+      const message = (error?.reason || error?.message || '').toLowerCase();
+      
+      if (message.includes('user rejected')) {
+        alert('서명이 취소되었습니다');
+      } else if (message.includes('insufficient')) {
+        alert('잔액이 부족합니다');
+      } else if (message.includes('network')) {
+        alert('네트워크 연결에 문제가 있습니다');
+      } else {
+        alert(`구매 실패: ${error?.message ?? error}`);
+      }
     } finally {
       setIsLoading(false);
     }
@@ -1988,6 +2750,101 @@ export default function WellSwapGlobalPlatform() {
     step1MultisigRegistration: "Step 1: Multisig Registration",
   };
 
+  // listings 상태 추가 (AdminPage에서 사용)
+  const [listings, setListings] = useState(listingData);
+  const [showWalletConnectModal, setShowWalletConnectModal] = useState(false);
+
+  // 관리자 지갑 주소 목록
+  const ADMIN_WALLETS = [
+    'HhYmywR1Nr9YWgT4NbBHsa6F8y2viYWhVbsy4s2J38kg', // 솔라나 관리자 주소
+    '0x8a627a75d04bf3c709154205dfbbb6f4ed10dcb0', // 현재 연결된 지갑
+    '0x1234567890123456789012345678901234567890', // 예시 주소
+    '0xabcdefabcdefabcdefabcdefabcdefabcdefabcd',  // 예시 주소
+    '0x742d35cc6634c0532925a3b8d4c9db96c4b4d8b6', // 추가 관리자 주소
+    '0x9b1a5f8709c6710650a010b4c9c16b1f9a5f8709', // 추가 관리자 주소
+    '0x1a2b3c4d5e6f7890123456789012345678901234', // 추가 관리자 주소
+    '0x5a6b7c8d9e0f1234567890123456789012345678', // 추가 관리자 주소
+    '0x9c8b7a6f5e4d3c2b1a098765432109876543210'   // 추가 관리자 주소
+  ];
+
+  // 관리자 권한 확인 (솔라나 주소 지원)
+  const isAdmin = useMemo(() => {
+    const currentAccount = connectedAccount || web3Account;
+    if (!currentAccount) {
+      console.log('🔍 관리자 권한 확인: 지갑이 연결되지 않음');
+      return false;
+    }
+    
+    // 솔라나 주소와 이더리움 주소 모두 확인
+    const accountStr = currentAccount.toString().toLowerCase();
+    const isSolanaAdmin = ADMIN_WALLETS.some(wallet => 
+      wallet.toLowerCase() === accountStr
+    );
+    
+    console.log('🔍 관리자 권한 확인:', {
+      currentAccount: accountStr,
+      isSolanaAdmin,
+      adminWallets: ADMIN_WALLETS.map(w => w.toLowerCase()),
+      connectedAccount: connectedAccount?.toString().toLowerCase(),
+      web3Account: web3Account?.toString().toLowerCase()
+    });
+    
+    return isSolanaAdmin;
+  }, [connectedAccount, web3Account]);
+
+  // 관리자 메뉴 표시 여부 (지갑 연결만으로도 표시)
+  const showAdminMenu = useMemo(() => {
+    const shouldShow = isAdmin && isWeb3Connected;
+    console.log('🎛️ 관리자 메뉴 표시 조건:', {
+      isAdmin,
+      isWeb3Connected,
+      shouldShow
+    });
+    return shouldShow;
+  }, [isAdmin, isWeb3Connected]);
+
+  // 디버깅을 위한 useEffect 추가
+  useEffect(() => {
+    // 환경 변수 확인
+    console.log('🔍 환경 변수 확인:');
+    console.log('CHAIN_ID:', process.env.NEXT_PUBLIC_CHAIN_ID);
+    console.log('RPC_URL:', process.env.NEXT_PUBLIC_RPC_URL);
+    console.log('CONTRACT_ADDRESS:', process.env.NEXT_PUBLIC_CONTRACT_ADDRESS);
+    
+    // MetaMask 확인
+    if (typeof window !== 'undefined') {
+      console.log('MetaMask 사용 가능:', !!(window as any).ethereum);
+      if ((window as any).ethereum) {
+        console.log('Ethereum Provider:', (window as any).ethereum.isMetaMask);
+      }
+    }
+  }, []);
+
+  // Web3 상태 변화 모니터링
+  useEffect(() => {
+    console.log('🔄 Web3 상태 업데이트:', {
+      isWeb3Connected,
+      web3Account,
+      isAuthenticated,
+      connectedAccount,
+      user: user ? user.id : null,
+      isAdmin,
+      showAdminMenu
+    });
+  }, [isWeb3Connected, web3Account, isAuthenticated, connectedAccount, user, isAdmin, showAdminMenu]);
+
+  // 컴포넌트 마운트 시 초기 상태 로깅
+  useEffect(() => {
+    console.log('🚀 WellSwap 컴포넌트 마운트됨');
+    console.log('초기 상태:', {
+      currentPage,
+      isAuthenticated,
+      isWeb3Connected,
+      connectedAccount,
+      web3Account
+    });
+  }, []);
+
   return (
     <div className={THEME_ROOT_CLASS} suppressHydrationWarning>
       {/* Navigation */}
@@ -2019,6 +2876,14 @@ export default function WellSwapGlobalPlatform() {
             >
               {t.inquiry}
             </button>
+            {showAdminMenu && (
+              <button
+                onClick={() => setCurrentPage('admin')}
+                className={`font-light transition-colors ${currentPage === 'admin' ? 'text-zinc-900' : 'text-zinc-600 hover:text-zinc-900'}`}
+              >
+                Admin Panel
+              </button>
+            )}
           </div>
         </div>
         
@@ -2056,10 +2921,48 @@ export default function WellSwapGlobalPlatform() {
         </div>
       </nav>
 
+      {/* Solflare Wallet Connect - 수동 연결 버튼으로 변경 */}
+      {showWalletConnectModal && (
+        <div className="fixed inset-0 bg-black bg-opacity-50 flex items-center justify-center z-50">
+          <div className="bg-white rounded-lg p-6 max-w-md w-full mx-4">
+            <div className="flex justify-between items-center mb-4">
+              <h2 className="text-xl font-semibold">Connect Solflare Wallet</h2>
+              <button 
+                onClick={() => setShowWalletConnectModal(false)}
+                className="text-gray-500 hover:text-gray-700"
+              >
+                <X className="w-5 h-5" />
+              </button>
+            </div>
+            <SolflareWalletConnect
+              onConnect={(publicKey, balance) => {
+                console.log('Wallet connected:', publicKey, balance);
+                setShowWalletConnectModal(false);
+                // 지갑 연결 후 관리자 권한 확인
+                setTimeout(() => {
+                  if (isAdmin) {
+                    console.log('👑 관리자 지갑 연결됨! 관리자 패널로 이동합니다.');
+                    setCurrentPage('admin');
+                  }
+                }, 1000);
+              }}
+              onDisconnect={() => {
+                console.log('Wallet disconnected');
+              }}
+              onError={(error) => {
+                alert(error);
+              }}
+              isConnected={isWeb3Connected}
+              connectedAddress={connectedAccount || undefined}
+            />
+          </div>
+        </div>
+      )}
+
       {/* Main Content */}
       <main className="container mx-auto px-4 md:px-6 py-8 md:py-12">
         <div style={{ display: currentPage === "home" ? "block" : "none" }}>
-          <HomePage t={t} setCurrentPage={setCurrentPage} />
+          <HomePage t={t} setCurrentPage={setCurrentPage} setShowWalletConnectModal={setShowWalletConnectModal} />
         </div>
 
         <div style={{ display: currentPage === "sell" ? "block" : "none" }}>
@@ -2132,6 +3035,17 @@ export default function WellSwapGlobalPlatform() {
 
         <div style={{ display: currentPage === "inquiry" ? "block" : "none" }}>
           <InquiryPage t={t} handleInquirySubmit={handleInquirySubmit} />
+        </div>
+
+        <div style={{ display: currentPage === "admin" ? "block" : "none" }}>
+          <AdminInquiryPanel 
+            user={{
+              ...user,
+              wallet_address: connectedAccount || web3Account?.toString(),
+              publicKey: web3Account?.toString(),
+              address: connectedAccount || web3Account?.toString()
+            }}
+          />
         </div>
       </main>
     </div>

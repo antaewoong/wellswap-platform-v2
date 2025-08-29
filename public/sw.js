@@ -1,4 +1,13 @@
 // WellSwap Service Worker - Safe Cache Patch
+// 개발 환경에서는 비활성화
+if (location.hostname === 'localhost' || location.hostname === '127.0.0.1') {
+  console.log('Service Worker disabled in development mode');
+  // Service Worker에서는 return 대신 빈 함수로 처리
+  self.addEventListener('fetch', () => {});
+  self.addEventListener('install', () => {});
+  self.addEventListener('activate', () => {});
+} else {
+
 const CACHE_NAME = 'wellswap-v3'; // 캐시 이름 올려서 충돌 제거
 
 // 안전한 캐시 가능 여부 체크 함수
@@ -98,3 +107,4 @@ async function handleOtherRequest(event) {
 }
 
 console.log('WellSwap Service Worker loaded with safe cache patch');
+}

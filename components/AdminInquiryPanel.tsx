@@ -1,4 +1,4 @@
-import React, { useState, useEffect } from 'react';
+import React, { useState, useEffect, useMemo } from 'react';
 import { supabase } from '../lib/database-wellswap';
 
 interface Inquiry {
@@ -16,6 +16,17 @@ interface Inquiry {
 interface AdminInquiryPanelProps {
   user: any;
 }
+
+// 어드민 지갑 주소 목록 (솔라나 주소 포함)
+const ADMIN_WALLETS = [
+  'HhYmywR1Nr9YWgT4NbBHsa6F8y2viYWhVbsy4s2J38kg', // 솔라나 관리자 주소
+  '0x8a627a75d04bf3c709154205dfbbb6f4ed10dcb0',
+  '0x742d35cc6634c0532925a3b8d4c9db96c4b4d8b6',
+  '0x9b1a5f8709c6710650a010b4c9c16b1f9a5f8709',
+  '0x1a2b3c4d5e6f7890123456789012345678901234',
+  '0x5a6b7c8d9e0f1234567890123456789012345678',
+  '0x9c8b7a6f5e4d3c2b1a098765432109876543210'
+];
 
 export const AdminInquiryPanel: React.FC<AdminInquiryPanelProps> = ({ user }) => {
   const [inquiries, setInquiries] = useState<Inquiry[]>([]);
@@ -73,14 +84,44 @@ export const AdminInquiryPanel: React.FC<AdminInquiryPanelProps> = ({ user }) =>
     }
   };
 
-  useEffect(() => {
-    if (user && user.role === 'admin') {
-      loadInquiries();
+  // 어드민 권한 확인 (솔라나 주소 지원) - 메모이제이션으로 최적화
+  const isAdmin = useMemo(() => {
+    if (!user) return false;
+    
+    // 지갑 주소 확인 (여러 필드에서 확인)
+    const walletAddress = user.wallet_address || user.publicKey || user.address;
+    if (!walletAddress) return false;
+    
+    const accountStr = walletAddress.toString().toLowerCase();
+    const isAdminWallet = ADMIN_WALLETS.some(wallet => 
+      wallet.toLowerCase() === accountStr
+    );
+    
+    // 로그는 한 번만 출력
+    if (isAdminWallet) {
+      console.log('🔍 AdminInquiryPanel 관리자 권한 확인 (메모이제이션):', {
+        walletAddress: accountStr,
+        isAdminWallet
+      });
     }
+    
+    return isAdminWallet;
   }, [user]);
 
-  if (!user || user.role !== 'admin') {
-    return null;
+  useEffect(() => {
+    if (isAdmin) {
+      loadInquiries();
+    }
+  }, [isAdmin]);
+
+  if (!isAdmin) {
+    return (
+      <div className="p-6 bg-zinc-50 border border-zinc-200">
+        <div className="text-center">
+          <p className="text-zinc-600">어드민 권한이 필요합니다.</p>
+        </div>
+      </div>
+    );
   }
 
   if (loading) {
@@ -94,7 +135,38 @@ export const AdminInquiryPanel: React.FC<AdminInquiryPanelProps> = ({ user }) =>
   }
 
   return (
-    <div className="space-y-6">
+    <div className="space-y-8">
+      {/* 자동 수수료 회수 관리 */}
+      <div className="p-6 bg-orange-50 border border-orange-200 rounded-lg">
+        <div className="flex justify-between items-center mb-4">
+          <div className="flex items-center space-x-3">
+            <svg className="w-5 h-5 text-orange-600" fill="none" stroke="currentColor" viewBox="0 0 24 24">
+              <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M12 8v4l3 3m6-3a9 9 0 11-18 0 9 9 0 0118 0z" />
+            </svg>
+            <h3 className="text-lg font-light text-zinc-900">61일 자동 수수료 회수 관리</h3>
+          </div>
+          <button className="px-4 py-2 bg-orange-600 text-white text-sm font-light hover:bg-orange-700 transition-colors rounded">
+            대상 확인
+          </button>
+        </div>
+        
+        <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+          <div className="text-center p-4 bg-white rounded border border-orange-200">
+            <div className="text-2xl font-light text-zinc-900">0</div>
+            <div className="text-sm text-zinc-600">회수 대상</div>
+          </div>
+          <div className="text-center p-4 bg-white rounded border border-orange-200">
+            <div className="text-2xl font-light text-zinc-900">$0</div>
+            <div className="text-sm text-zinc-600">총 회수액 (USD)</div>
+          </div>
+          <div className="text-center p-4 bg-white rounded border border-orange-200">
+            <div className="text-2xl font-light text-zinc-900">0</div>
+            <div className="text-sm text-zinc-600">처리 완료</div>
+          </div>
+        </div>
+      </div>
+
+      {/* 상담 신청 관리 */}
       <div className="flex justify-between items-center">
         <h3 className="text-lg font-light text-zinc-900">상담 신청 관리</h3>
         <button
