@@ -61,6 +61,21 @@ import {
   SplitTextAnimation,
   MobileHeroText
 } from './ui/DynamicTypography';
+import {
+  PremiumButton,
+  PremiumCard,
+  PageTransition,
+  SmoothReveal,
+  FloatingButton,
+  MagneticButton,
+  PremiumInput
+} from './ui/PremiumAnimations';
+import {
+  GlassCard,
+  GlassButton,
+  GlassProgressBar,
+  GlassContainer
+} from './ui/GlassmorphismComponents';
 import { Camera, Upload, User, Menu, X, Wallet, ArrowRight, Globe, MessageSquare, BarChart3, TrendingUp, Shield, CheckCircle2, AlertCircle, Clock, DollarSign, Key, Lock, Users } from 'lucide-react';
 
 // Polygon Web3 및 백엔드 연동
@@ -217,72 +232,81 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
     <div className="space-y-16">
       <div className="text-center space-y-8">
         <div className="relative">
-          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10 text-center">
-            <DynamicTypewriter 
-              texts={[
-                "WELLSWAP", 
-                "优享", // Chinese - Excellent Sharing (優秀 + 享受)
-                "GUTSWAP", // German - Good Swap  
-                "ウェルスワップ", // Japanese - Well Swap (katakana brand name)
-                "BONÉCHANGE", // French - Good Exchange
-                "BIENCAMBIO" // Spanish - Good Change
-              ]}
-              speed={120}
-              deleteSpeed={60}
-              delayBetweenTexts={3000}
-              gradient={true}
-              scale={true}
-              className="text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text whitespace-nowrap"
-            />
-          </h1>
-          <GradientBackground 
-            className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
-            colors={["from-zinc-100", "via-zinc-200", "to-zinc-100"]}
-          >
-            <div></div>
-          </GradientBackground>
+          <GlassContainer background="subtle" className="py-12">
+            <h1 className="text-[6rem] sm:text-[8rem] md:text-[12rem] lg:text-[16rem] xl:text-[20rem] 2xl:text-[24rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10 text-center">
+              <DynamicTypewriter 
+                texts={[
+                  "WELLSWAP", 
+                  "优享", // Chinese - Excellent Sharing (優秀 + 享受)
+                  "GUTSWAP", // German - Good Swap  
+                  "ウェルスワップ", // Japanese - Well Swap (katakana brand name)
+                  "BONÉCHANGE", // French - Good Exchange
+                  "BIENCAMBIO" // Spanish - Good Change
+                ]}
+                speed={120}
+                deleteSpeed={60}
+                delayBetweenTexts={3000}
+                gradient={true}
+                scale={true}
+                className="text-transparent bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-900 bg-clip-text whitespace-nowrap"
+              />
+            </h1>
+          </GlassContainer>
         </div>
-        <FadeInAnimation delay={0.5}>
-          <div className="w-32 h-px bg-zinc-900 mx-auto mb-8"></div>
-        </FadeInAnimation>
+        <SmoothReveal delay={0.5} direction="up">
+          <div className="w-32 h-px bg-gradient-to-r from-transparent via-zinc-400 to-transparent mx-auto mb-8"></div>
+        </SmoothReveal>
         
-        <FadeInAnimation delay={0.8}>
+        <SmoothReveal delay={0.8} direction="up">
           <p className="text-lg sm:text-xl md:text-2xl text-zinc-600 font-light tracking-wide max-w-4xl mx-auto">
             {t.mainSubtitle}
           </p>
-        </FadeInAnimation>
+        </SmoothReveal>
         
-        <FadeInAnimation delay={1.1}>
+        <SmoothReveal delay={1.1} direction="up">
           <p className="text-sm sm:text-base md:text-lg text-zinc-500 font-light max-w-3xl mx-auto">
             {t.description}
           </p>
-        </FadeInAnimation>
+        </SmoothReveal>
         
-        <FadeInAnimation delay={1.4}>
-          <div className="flex flex-col sm:flex-row gap-4 justify-center items-center pt-8">
-            <AnimatedButton
+        <SmoothReveal delay={1.4} direction="up">
+          <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
+            <MagneticButton
               onClick={() => setCurrentPage('sell')}
-              className="px-8 py-4 bg-zinc-900 text-zinc-50 font-light hover:bg-zinc-800 transition-all duration-300"
-              style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+              className="group"
             >
-              {t.getStarted}
-            </AnimatedButton>
-            <AnimatedButton
+              <GlassButton variant="primary" size="lg">
+                <span className="flex items-center gap-2">
+                  {t.getStarted}
+                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+                </span>
+              </GlassButton>
+            </MagneticButton>
+
+            <MagneticButton
               onClick={() => setCurrentPage('buy')}
-              className="px-8 py-4 border border-zinc-300 text-zinc-700 font-light hover:border-zinc-400 hover:bg-zinc-50 transition-colors"
-              style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+              className="group"
             >
-              {t.learnMore}
-            </AnimatedButton>
-            <AnimatedButton
+              <GlassButton variant="secondary" size="lg">
+                <span className="flex items-center gap-2">
+                  {t.learnMore}
+                  <Globe className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+                </span>
+              </GlassButton>
+            </MagneticButton>
+            <MagneticButton
               onClick={() => setShowWalletConnectModal(true)}
-              className="px-8 py-4 bg-zinc-900 text-zinc-50 font-light hover:bg-zinc-800 transition-all duration-300"
-              style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+              className="group"
             >
-              Connect Wallet
-            </AnimatedButton>
+              <GlassButton variant="accent" size="lg">
+                <span className="flex items-center gap-2">
+                  <Wallet className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                  Connect Wallet
+                </span>
+              </GlassButton>
+            </MagneticButton>
           </div>
-        </FadeInAnimation>
+        </SmoothReveal>
       </div>
 
       <StaggerContainer staggerDelay={0.2}>
@@ -407,7 +431,7 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
             delayBetweenTexts={2800}
             gradient={true}
             scale={true}
-            className="text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text"
+            className="text-transparent bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-900 bg-clip-text"
           />
         </h1>
         <div className="w-24 h-px bg-zinc-900 mb-6"></div>
@@ -638,66 +662,66 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               />
             </div>
 
-            {/* 자동계산 결과 섹션 - 고급 인터랙티브 디자인 */}
+            {/* 자동계산 결과 섹션 - 고급 글라스모피즘 디자인 */}
             {(insuranceData.annualPayment || insuranceData.totalPayment) && (
-              <div className="mt-8 p-6 bg-gradient-to-br from-blue-50 via-indigo-50 to-blue-100 rounded-xl border border-blue-200 shadow-lg transform hover:scale-[1.02] transition-all duration-500">
-                <h3 className="text-lg font-semibold text-blue-900 mb-4 flex items-center">
-                  <div className="w-8 h-8 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3 animate-pulse">
+              <GlassCard variant="premium" className="mt-8">
+                <h3 className="text-lg font-semibold text-neutral-800 mb-4 flex items-center">
+                  <div className="w-8 h-8 bg-gradient-to-br from-neutral-700 to-neutral-800 rounded-lg flex items-center justify-center mr-3">
                     <BarChart3 className="w-5 h-5 text-white" />
-                  </div>
+                    </div>
                   Auto Calculation Result
                 </h3>
-                
-                <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
-                  {/* Annual Premium */}
-                  <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
+                <div className="space-y-4 mt-4">
+                  <div className="grid grid-cols-1 md:grid-cols-3 gap-4">
+                    {/* Annual Premium */}
+                    <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-blue-700 group-hover:text-blue-900 transition-colors">Annual Premium</span>
-                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full group-hover:bg-blue-200 transition-colors">USD</span>
-                    </div>
+                      <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-1 rounded-full group-hover:bg-neutral-200 transition-colors">USD</span>
+                      </div>
                     <div className="text-2xl font-bold text-blue-900 animate-pulse">
                       ${parseFloat(insuranceData.annualPayment || '0').toLocaleString()}
-                    </div>
+                      </div>
                     <div className="mt-2 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                       Monthly: ${(parseFloat(insuranceData.annualPayment || '0') / 12).toLocaleString()}
+                      </div>
                     </div>
-                  </div>
 
                   {/* Paid Period */}
-                  <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
+                    <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-blue-700 group-hover:text-blue-900 transition-colors">Paid Period</span>
-                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full group-hover:bg-blue-200 transition-colors">Years</span>
-                    </div>
+                      <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-1 rounded-full group-hover:bg-neutral-200 transition-colors">Years</span>
+                      </div>
                     <div className="text-2xl font-bold text-blue-900 animate-pulse">
                       {(() => {
                         const totalPaid = parseFloat(insuranceData.totalPayment || '0');
                         const annual = parseFloat(insuranceData.annualPayment || '0');
                         return annual > 0 ? Math.floor(totalPaid / annual) : 0;
                       })()} Years
-                    </div>
+                      </div>
                     <div className="mt-2 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                       Months: {(() => {
                         const totalPaid = parseFloat(insuranceData.totalPayment || '0');
                         const annual = parseFloat(insuranceData.annualPayment || '0');
                         return annual > 0 ? Math.floor((totalPaid / annual) * 12) : 0;
                       })()}
+                      </div>
                     </div>
-                  </div>
 
                   {/* Total Paid */}
-                  <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
+                    <div className="bg-white p-4 rounded-lg border border-blue-200 hover:shadow-lg transition-all duration-300 transform hover:-translate-y-1 group">
                     <div className="flex items-center justify-between mb-2">
                       <span className="text-sm font-medium text-blue-700 group-hover:text-blue-900 transition-colors">Total Paid</span>
-                      <span className="text-xs text-blue-600 bg-blue-100 px-2 py-1 rounded-full group-hover:bg-blue-200 transition-colors">USD</span>
-                    </div>
+                      <span className="text-xs text-neutral-600 bg-neutral-100 px-2 py-1 rounded-full group-hover:bg-neutral-200 transition-colors">USD</span>
+                      </div>
                     <div className="text-2xl font-bold text-blue-900 animate-pulse">
                       ${parseFloat(insuranceData.totalPayment || '0').toLocaleString()}
-                    </div>
+                      </div>
                     <div className="mt-2 text-xs text-blue-600 opacity-0 group-hover:opacity-100 transition-opacity">
                       Auto-calculated
+                      </div>
                     </div>
-                  </div>
                 </div>
 
                 {/* 고급 게이지 차트 */}
@@ -714,13 +738,13 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                         return totalExpected > 0 ? Math.round((totalPaid / totalExpected) * 100) : 0;
                       })()}%
                     </span>
-                  </div>
+                    </div>
                   
                   {/* 게이지 차트 */}
                   <div className="relative">
-                    <div className="w-full bg-blue-200 rounded-full h-4 overflow-hidden shadow-inner">
+                    <div className="w-full bg-neutral-200 rounded-full h-4 overflow-hidden shadow-inner">
                       <div 
-                        className="bg-gradient-to-r from-blue-500 via-indigo-500 to-purple-600 h-4 rounded-full transition-all duration-1000 ease-out shadow-lg relative"
+                        className="bg-gradient-to-r from-neutral-700 via-neutral-600 to-neutral-800 h-4 rounded-full transition-all duration-1000 ease-out shadow-lg relative"
                         style={{
                           width: `${(() => {
                             const totalPaid = parseFloat(insuranceData.totalPayment || '0');
@@ -734,8 +758,8 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                       >
                         {/* 애니메이션 효과 */}
                         <div className="absolute inset-0 bg-gradient-to-r from-transparent via-white to-transparent opacity-30 animate-pulse"></div>
+                        </div>
                       </div>
-                    </div>
                     
                     {/* 게이지 마커들 */}
                     <div className="flex justify-between text-xs text-blue-600 mt-2">
@@ -744,8 +768,8 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                       <span className="font-medium">50%</span>
                       <span className="font-medium">75%</span>
                       <span className="font-medium">100%</span>
+                      </div>
                     </div>
-                  </div>
 
                   {/* 추가 정보 */}
                   <div className="mt-4 grid grid-cols-1 md:grid-cols-2 gap-4">
@@ -760,18 +784,19 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                           const totalExpected = annual * periodYears;
                           return Math.max(0, totalExpected - totalPaid).toLocaleString();
                         })()}
+                        </div>
                       </div>
-                    </div>
                     
-                    <div className="bg-gradient-to-br from-purple-50 to-violet-100 p-3 rounded-lg border border-purple-200">
-                      <div className="text-sm font-medium text-purple-700">Monthly Payment</div>
-                      <div className="text-lg font-bold text-purple-900">
+                    <div className="bg-gradient-to-br from-neutral-50 to-stone-100 p-3 rounded-lg border border-neutral-200">
+                      <div className="text-sm font-medium text-neutral-600">Monthly Payment</div>
+                      <div className="text-lg font-bold text-neutral-900">
                         ${(parseFloat(insuranceData.annualPayment || '0') / 12).toLocaleString()}
+                        </div>
                       </div>
                     </div>
-                  </div>
                 </div>
-              </div>
+                </div>
+              </GlassCard>
             )}
 
             {/* 제출 버튼 */}
@@ -907,15 +932,15 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                     <p>Insurance Company: {ocrResult.extractedData.company || 'Unknown'}</p>
                     <p>Product Name: {ocrResult.extractedData.productName || 'Unknown'}</p>
                     <p>Surrender Value: {ocrResult.extractedData.surrenderValue || 'Unknown'}</p>
-                  </div>
+                    </div>
                 )}
               </div>
             )}
 
             {/* AI 크롤링 시스템 정보 - 고급 디자인 */}
-            <div className="mt-6 p-6 bg-gradient-to-br from-purple-50 via-indigo-50 to-purple-100 rounded-xl border border-purple-200 shadow-lg">
+            <div className="mt-6 p-6 bg-gradient-to-br from-neutral-50 via-stone-50 to-neutral-100 rounded-xl border border-neutral-200 shadow-lg">
               <div className="flex items-center mb-4">
-                <div className="w-10 h-10 bg-gradient-to-br from-purple-500 to-indigo-600 rounded-lg flex items-center justify-center mr-3">
+                <div className="w-10 h-10 bg-gradient-to-br from-neutral-700 to-neutral-800 rounded-lg flex items-center justify-center mr-3">
                   <svg className="w-6 h-6 text-white" fill="none" stroke="currentColor" viewBox="0 0 24 24">
                     <path strokeLinecap="round" strokeLinejoin="round" strokeWidth={2} d="M9 19v-6a2 2 0 00-2-2H5a2 2 0 00-2 2v6a2 2 0 002 2h2a2 2 0 002-2zm0 0V9a2 2 0 012-2h2a2 2 0 012 2v10m-6 0a2 2 0 002 2h2a2 2 0 002-2m0 0V5a2 2 0 012-2h2a2 2 0 012 2v14a2 2 0 01-2 2h-2a2 2 0 01-2-2z" />
                   </svg>
@@ -935,8 +960,8 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                       <span className="text-lg font-bold text-purple-900">
                         {fulfillmentData.adjustmentFactor?.toFixed(2) || 'N/A'}
                       </span>
+                      </div>
                     </div>
-                  </div>
                   
                   <div className="bg-white p-3 rounded-lg border border-purple-200">
                     <div className="flex items-center justify-between">
@@ -944,8 +969,8 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                       <span className="text-lg font-bold text-purple-900">
                         {fulfillmentData.reliabilityScore?.toFixed(2) || 'N/A'}
                       </span>
+                      </div>
                     </div>
-                  </div>
                   
                   <div className="bg-white p-3 rounded-lg border border-purple-200">
                     <div className="flex items-center justify-between">
@@ -953,15 +978,15 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                       <span className="text-lg font-bold text-purple-900">
                         {fulfillmentData.recommendation || 'N/A'}
                       </span>
+                      </div>
                     </div>
-                  </div>
                 </div>
               ) : (
                 <div className="bg-white p-4 rounded-lg border border-purple-200 text-center">
                   <div className="animate-pulse">
                     <div className="w-4 h-4 bg-purple-300 rounded-full mx-auto mb-2"></div>
                     <p className="text-sm text-purple-600">Crawling data will appear here...</p>
-                  </div>
+                    </div>
                 </div>
               )}
             </div>
@@ -1183,14 +1208,14 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
                     <p className="text-xs md:text-sm text-yellow-700">
                       {listing.status === 'blockchain_pending' ? '블록체인 거래 진행 중' : '거래 진행 중'}
                     </p>
-                  </div>
+                    </div>
                 </div>
               ) : (
                 <div className="p-2 md:p-3 bg-red-50 border border-red-200 text-center">
                   <div className="flex items-center justify-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-red-600" />
                     <p className="text-xs md:text-sm text-red-700">이 상품은 판매되었습니다</p>
-                  </div>
+                    </div>
                 </div>
               )}
             </div>
@@ -1272,7 +1297,7 @@ export const InquiryPage = React.memo(function InquiryPage({
               delayBetweenTexts={2800}
               gradient={true}
               scale={true}
-              className="text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text"
+              className="text-transparent bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-900 bg-clip-text"
             />
           </h1>
           <GradientBackground 

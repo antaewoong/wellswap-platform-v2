@@ -130,7 +130,7 @@ export async function connectMetaMask() {
         // 네트워크 변경 후 잠시 대기
         await new Promise(resolve => setTimeout(resolve, 1000));
         // 새로운 provider 인스턴스 생성
-        const newProvider = new ethers.BrowserProvider(window.ethereum);
+        const newProvider = new ethers.BrowserProvider((window as any).ethereum);
         const newSigner = await newProvider.getSigner();
         const newAddress = await newSigner.getAddress();
         
@@ -272,7 +272,7 @@ export async function registerInsuranceAsset(assetData: {
     const usdcContract = new ethers.Contract(CONTRACT_ADDRESSES.USDC, ERC20_ABI, signer);
     
     // WellSwap 컨트랙트에서 현재 등록비 조회 (view 함수는 provider로 호출)
-    const provider = new ethers.BrowserProvider(window.ethereum);
+    const provider = new ethers.BrowserProvider((window as any).ethereum);
     const wellswapContract = new ethers.Contract(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, WELLSWAP_ABI, provider);
     
     let registrationFee;
@@ -305,19 +305,33 @@ export async function registerInsuranceAsset(assetData: {
     // 2. USDC approve (재시도 로직 포함) - 동적 USDC 주소 사용
     const dynamicUsdcContract = new ethers.Contract(actualUsdcAddress, ERC20_ABI, signer);
     
+    // 총 필요 금액 계산 (등록비 + totalPaid)
+    const totalPaidAmount = ethers.parseUnits(assetData.totalPaid || '1000', 6);
+    const totalRequiredAmount = registrationFee + totalPaidAmount;
+    const totalFormatted = ethers.formatUnits(totalRequiredAmount, 6);
+    
+    console.log('💸 등록비:', regFeeFormatted, 'USDC');
+    console.log('💰 자산 가치:', ethers.formatUnits(totalPaidAmount, 6), 'USDC');  
+    console.log('📊 총 필요 금액:', totalFormatted, 'USDC');
+    
+    // 잔액 재확인
+    if (parseFloat(usdcInfo.balance) < parseFloat(totalFormatted)) {
+      throw new Error(`USDC 잔액 부족. 필요: ${totalFormatted} USDC, 보유: ${usdcInfo.balance} ${usdcInfo.symbol}`);
+    }
+    
     await retryWithFallback(async () => {
-      console.log('💰 USDC approve 시작... (주소:', actualUsdcAddress, ')');
+      console.log('💰 USDC approve 시작... (총액:', totalFormatted, 'USDC, 주소:', actualUsdcAddress, ')');
       
-      // 가스비 추정 with fallback
+      // 가스비 추정 with fallback  
       const gasEstimate = await retryWithFallback(async () => {
-        return await dynamicUsdcContract.approve.estimateGas(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee);
+        return await dynamicUsdcContract.approve.estimateGas(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, totalRequiredAmount);
       }, 2, 500);
       
       const gasLimit = gasEstimate * BigInt(150) / BigInt(100); // 50% 여유분
       
       console.log(`⛽ Gas 설정: ${gasLimit.toString()}`);
       
-      const approveTx = await dynamicUsdcContract.approve(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee, {
+      const approveTx = await dynamicUsdcContract.approve(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, totalRequiredAmount, {
         gasLimit: gasLimit,
         maxFeePerGas: ethers.parseUnits('80', 'gwei'), // 메인넷 적정 가스
         maxPriorityFeePerGas: ethers.parseUnits('40', 'gwei')
@@ -478,6 +492,19 @@ export function getMumbaiTestTokens() {
   return faucets;
 }
 
+// Contract 연결 함수들
+const getContract = async () => {
+  const provider = new ethers.JsonRpcProvider(POLYGON_CONFIG.RPC_URLS[0]);
+  const contract = new ethers.Contract(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, WELLSWAP_ABI, provider);
+  return { contract, provider };
+};
+
+const getContractWithSigner = async () => {
+  const { signer, address } = await connectMetaMask();
+  const contract = new ethers.Contract(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, WELLSWAP_ABI, signer);
+  return { contract, signer, address };
+};
+
 // 등록비 조회
 export const getRegistrationFee = async () => {
   try {
@@ -517,13 +544,18 @@ export const setRegistrationFee = async (newFeeUSDC: string) => {
   try {
     const { contract } = await getContractWithSigner();
     
-    const newFeeWei = ethers.parseUnits(newFeeUSDC, 6); // USDC 6 decimals
+    // 개발/테스트 환경에서는 등록비를 0으로 설정
+    const isDevEnvironment = process.env.NODE_ENV === 'development' || 
+                            window.location.hostname === 'localhost';
+    
+    const feeAmount = isDevEnvironment ? "0" : newFeeUSDC;
+    const newFeeWei = ethers.parseUnits(feeAmount, 6); // USDC 6 decimals
     const tx = await contract.setRegistrationFee(newFeeWei);
     
     console.log('💰 등록비 변경 트랜잭션:', tx.hash);
     await tx.wait();
     
-    console.log('✅ 등록비 변경 완료:', newFeeUSDC, 'USDC');
+    console.log('✅ 등록비 변경 완료:', feeAmount, 'USDC');
     return { success: true, txHash: tx.hash };
     
   } catch (error) {

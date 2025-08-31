@@ -8,11 +8,10 @@ const supabase = createClient(
 
 export async function GET() {
   try {
-    // 간단한 Supabase 쿼리로 연결 유지
-    const { data, error } = await supabase
+    // 간단한 Supabase 쿼리로 연결 유지 (올바른 문법)
+    const { count, error } = await supabase
       .from('insurance_listings')
-      .select('count(*)')
-      .limit(1);
+      .select('*', { count: 'exact', head: true });
 
     if (error) {
       console.log('Keep-alive query error:', error);
@@ -21,7 +20,8 @@ export async function GET() {
     return NextResponse.json({ 
       status: 'alive', 
       timestamp: new Date().toISOString(),
-      query_result: data ? 'success' : 'no_data'
+      query_result: count !== null ? 'success' : 'no_data',
+      count: count
     });
   } catch (error) {
     console.error('Keep-alive error:', error);

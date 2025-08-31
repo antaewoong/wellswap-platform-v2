@@ -84,7 +84,7 @@ export const DynamicTypewriter = ({
     return () => clearTimeout(timeout);
   }, [displayText, isDeleting, currentTextIndex, isPaused, textArray, speed, deleteSpeed, delayBetweenTexts, isClient]);
 
-  const gradientClass = gradient ? 'bg-gradient-to-r from-purple-600 via-blue-600 to-indigo-600 bg-clip-text text-transparent' : '';
+  const gradientClass = gradient ? 'bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-900 bg-clip-text text-transparent' : '';
   const scaleClass = scale ? 'hover:scale-105 transition-transform duration-300' : '';
   const blurClass = blur ? 'text-shadow-lg' : '';
 
@@ -277,7 +277,7 @@ export const GradientText = ({
   children, 
   className = "",
   animate = true,
-  colors = ['#8B5CF6', '#3B82F6', '#06B6D4', '#10B981'],
+  colors = ['#171717', '#525252', '#737373', '#404040'],
   duration = 3 
 }) => {
   const gradientColors = colors.join(', ');

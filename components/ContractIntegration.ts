@@ -12,8 +12,8 @@ async function ensureWritableContract() {
   const eth = (window as any).ethereum;
   if (!eth) throw new Error('MetaMask가 필요합니다.');
 
-  // HMR에도 안전한 provider
-  const provider = new ethers.providers.Web3Provider(eth, 'any');
+  // HMR에도 안전한 provider (ethers v6)
+  const provider = new ethers.BrowserProvider(eth);
 
   // 계정 보장 (이미 연결돼 있으면 no-op)
   try { await provider.send('eth_requestAccounts', []); } catch {}
