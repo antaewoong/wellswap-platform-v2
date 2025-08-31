@@ -393,19 +393,22 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
     <div className="space-y-8">
       <div>
         <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none">
-          <GradientText 
-            animate={true}
-            colors={['#6366f1', '#8b5cf6', '#d946ef', '#f59e0b']}
-            duration={4}
-            className="block"
-          >
-            <WaveText 
-              text="SELL"
-              amplitude={15}
-              frequency={3}
-              delay={150}
-            />
-          </GradientText>
+          <DynamicTypewriter 
+            texts={[
+              "SELL",
+              "販売", // Japanese - Sales
+              "销售", // Chinese - Sales  
+              "VENDRE", // French - To Sell
+              "VENDER", // Spanish - To Sell
+              "VERKAUF" // German - Sale
+            ]}
+            speed={100}
+            deleteSpeed={70}
+            delayBetweenTexts={2800}
+            gradient={true}
+            scale={true}
+            className="text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text"
+          />
         </h1>
         <div className="w-24 h-px bg-zinc-900 mb-6"></div>
       </div>
@@ -1001,19 +1004,22 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
       <div>
         <div className="relative">
           <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10">
-            <GradientText 
-              animate={true}
-              colors={['#10b981', '#06b6d4', '#3b82f6', '#6366f1']}
-              duration={3.5}
-              className="block"
-            >
-              <SplitTextAnimation 
-                text="BUY"
-                animation="scale"
-                stagger={0.2}
-                duration={0.8}
-              />
-            </GradientText>
+            <DynamicTypewriter 
+              texts={[
+                "BUY",
+                "購入", // Japanese - Purchase
+                "购买", // Chinese - Buy
+                "ACHETER", // French - To Buy
+                "COMPRAR", // Spanish - To Buy
+                "KAUFEN" // German - To Buy
+              ]}
+              speed={100}
+              deleteSpeed={70}
+              delayBetweenTexts={2800}
+              gradient={true}
+              scale={true}
+              className="text-transparent bg-gradient-to-r from-emerald-600 via-cyan-600 to-blue-600 bg-clip-text"
+            />
           </h1>
           <GradientBackground 
             className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
@@ -1253,10 +1259,17 @@ export const InquiryPage = React.memo(function InquiryPage({
         <div className="relative">
           <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10">
             <DynamicTypewriter 
-              texts={["CONCIERGE", "PREMIUM SERVICE", "LUXURY SUPPORT"]}
+              texts={[
+                "CONCIERGE",
+                "コンシェルジュ", // Japanese - Concierge
+                "礼宾", // Chinese - Concierge/VIP Service
+                "CONCIERGERIE", // French - Concierge Service  
+                "CONSERJERÍA", // Spanish - Concierge
+                "CONCIERGE" // German - Concierge (same)
+              ]}
               speed={100}
               deleteSpeed={80}
-              delayBetweenTexts={2500}
+              delayBetweenTexts={2800}
               gradient={true}
               scale={true}
               className="text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text"

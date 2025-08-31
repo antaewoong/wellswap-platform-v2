@@ -8,8 +8,8 @@
 @theme inline {
   --color-background: var(--background);
   --color-foreground: var(--foreground);
-  --font-sans: var(--font-geist-sans);
-  --font-mono: var(--font-geist-mono);
+  --font-sans: var(--font-inter);
+  --font-mono: var(--font-inter);
 }
 
 @media (prefers-color-scheme: dark) {
@@ -17,6 +17,33 @@
     --background: #0a0a0a;
     --foreground: #ededed;
   }
+}
+
+/* 언어별 폰트 클래스 */
+.font-inter {
+  font-family: var(--font-inter), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-noto-sc {
+  font-family: var(--font-noto-sc), ui-sans-serif, system-ui, sans-serif;
+}
+
+.font-noto-jp {
+  font-family: var(--font-noto-jp), ui-sans-serif, system-ui, sans-serif;
+}
+
+/* 폰트 최적화 */
+body {
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
+  text-rendering: optimizeLegibility;
+}
+
+/* 다국어 타이포그래피 최적화 */
+.multilingual-text {
+  font-feature-settings: "liga" 1, "calt" 1;
+  -webkit-font-smoothing: antialiased;
+  -moz-osx-font-smoothing: grayscale;
 }
 
 body {

@@ -32,6 +32,22 @@ export const DynamicTypewriter = ({
   const isClient = useIsClient();
 
   const textArray = Array.isArray(texts) ? texts : [texts];
+  
+  // 언어별 폰트 매핑
+  const getFontClassForText = (text: string) => {
+    // 중국어 체크 (간체)
+    if (/[\u4e00-\u9fff]/.test(text) && !/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) {
+      return 'font-noto-sc';
+    }
+    // 일본어 체크 (히라가나, 카타카나)
+    if (/[\u3040-\u309f\u30a0-\u30ff]/.test(text)) {
+      return 'font-noto-jp';
+    }
+    // 기본 라틴 문자 (영어, 독일어, 프랑스어, 스페인어)
+    return 'font-inter';
+  };
+
+  const currentFontClass = getFontClassForText(textArray[currentTextIndex] || '');
 
   useEffect(() => {
     if (!isClient || textArray.length === 0) return;
@@ -78,7 +94,7 @@ export const DynamicTypewriter = ({
 
   return (
     <motion.span
-      className={`${className} ${gradientClass} ${scaleClass} ${blurClass} inline-block whitespace-nowrap`}
+      className={`${className} ${gradientClass} ${scaleClass} ${blurClass} ${currentFontClass} inline-block whitespace-nowrap`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
