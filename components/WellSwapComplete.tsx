@@ -51,6 +51,16 @@ import {
   AnimatedMainTitle,
   GradientBackground
 } from './animations/AnimationComponents';
+import {
+  DynamicTypewriter,
+  ScrollRevealText,
+  ParallaxText,
+  WaveText,
+  MorphingText,
+  GradientText,
+  SplitTextAnimation,
+  MobileHeroText
+} from './ui/DynamicTypography';
 import { Camera, Upload, User, Menu, X, Wallet, ArrowRight, Globe, MessageSquare, BarChart3, TrendingUp, Shield, CheckCircle2, AlertCircle, Clock, DollarSign, Key, Lock, Users } from 'lucide-react';
 
 // Polygon Web3 및 백엔드 연동
@@ -207,16 +217,10 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
     <div className="space-y-16">
       <div className="text-center space-y-8">
         <div className="relative">
-          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none relative z-10">
-            <TypewriterText 
-              text={t.mainTitle}
-              speed={150}
-              delay={500}
-              repeat={true}
-              pauseAfterComplete={2000}
-              className=""
-            />
-          </h1>
+          <MobileHeroText 
+            primaryText={t.mainTitle}
+            className="relative z-10 select-none"
+          />
           <GradientBackground 
             className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
             colors={["from-zinc-100", "via-zinc-200", "to-zinc-100"]}
@@ -374,15 +378,20 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
   return (
     <div className="space-y-8">
       <div>
-        <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none">
-          <TypewriterText 
-            text="SELL"
-            speed={150}
-            delay={500}
-            repeat={true}
-            pauseAfterComplete={2000}
-            className=""
-          />
+        <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none">
+          <GradientText 
+            animate={true}
+            colors={['#6366f1', '#8b5cf6', '#d946ef', '#f59e0b']}
+            duration={4}
+            className="block"
+          >
+            <WaveText 
+              text="SELL"
+              amplitude={15}
+              frequency={3}
+              delay={150}
+            />
+          </GradientText>
         </h1>
         <div className="w-24 h-px bg-zinc-900 mb-6"></div>
       </div>
@@ -977,15 +986,20 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
     <div className="space-y-8">
       <div>
         <div className="relative">
-          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none relative z-10">
-            <TypewriterText 
-              text="BUY"
-              speed={150}
-              delay={500}
-              repeat={true}
-              pauseAfterComplete={2000}
-              className=""
-            />
+          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10">
+            <GradientText 
+              animate={true}
+              colors={['#10b981', '#06b6d4', '#3b82f6', '#6366f1']}
+              duration={3.5}
+              className="block"
+            >
+              <SplitTextAnimation 
+                text="BUY"
+                animation="scale"
+                stagger={0.2}
+                duration={0.8}
+              />
+            </GradientText>
           </h1>
           <GradientBackground 
             className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
@@ -1223,14 +1237,15 @@ export const InquiryPage = React.memo(function InquiryPage({
     <div className="space-y-8">
       <div>
         <div className="relative">
-          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] text-zinc-900 select-none relative z-10">
-            <TypewriterText 
-              text="CONCIERGE"
-              speed={150}
-              delay={500}
-              repeat={true}
-              pauseAfterComplete={2000}
-              className=""
+          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10">
+            <DynamicTypewriter 
+              texts={["CONCIERGE", "컨시어지", "PREMIUM SERVICE"]}
+              speed={100}
+              deleteSpeed={80}
+              delayBetweenTexts={2500}
+              gradient={true}
+              scale={true}
+              className="text-transparent bg-gradient-to-r from-purple-600 via-pink-600 to-orange-600 bg-clip-text"
             />
           </h1>
           <GradientBackground 
