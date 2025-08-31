@@ -2,11 +2,17 @@
 import { ethers } from 'ethers';
 import detectEthereumProvider from '@metamask/detect-provider';
 
-// Polygon Amoy 설정
+// Polygon Amoy 설정 (다중 RPC fallback)
 const POLYGON_CONFIG = {
   CHAIN_ID: 80002,
   CHAIN_NAME: 'Polygon Amoy Testnet',
-  RPC_URL: 'https://rpc-amoy.polygon.technology',
+  RPC_URLS: [
+    'https://rpc-amoy.polygon.technology',
+    'https://polygon-amoy-bor-rpc.publicnode.com',
+    'https://polygon-amoy.drpc.org',
+    'https://amoy.gateway.tenderly.co',
+    'https://rpc.ankr.com/polygon_amoy'
+  ],
   BLOCK_EXPLORER: 'https://amoy.polygonscan.com/',
   NATIVE_TOKEN: {
     name: 'MATIC',
@@ -53,6 +59,49 @@ const WELLSWAP_ABI = [
   'event TradeCompleted(uint256 indexed assetId, address indexed seller, address indexed buyer, uint256 amount)',
   'event AssetExpired(uint256 indexed assetId, uint256 registrationFee)'
 ];
+
+// 재시도 로직 with exponential backoff
+async function retryWithFallback<T>(
+  operation: () => Promise<T>,
+  maxRetries: number = 3,
+  delay: number = 1000
+): Promise<T> {
+  for (let i = 0; i < maxRetries; i++) {
+    try {
+      return await operation();
+    } catch (error: any) {
+      console.log(`❌ 시도 ${i + 1}/${maxRetries} 실패:`, error.message);
+      
+      if (i === maxRetries - 1) {
+        throw error;
+      }
+      
+      // Exponential backoff with jitter
+      const waitTime = delay * Math.pow(2, i) + Math.random() * 1000;
+      console.log(`⏳ ${Math.round(waitTime)}ms 후 재시도...`);
+      await new Promise(resolve => setTimeout(resolve, waitTime));
+    }
+  }
+  throw new Error('Max retries reached');
+}
+
+// Fallback RPC Provider 생성
+async function createFallbackProvider() {
+  for (const rpcUrl of POLYGON_CONFIG.RPC_URLS) {
+    try {
+      console.log(`🔄 RPC 시도: ${rpcUrl}`);
+      const provider = new ethers.JsonRpcProvider(rpcUrl);
+      // 연결 테스트
+      await provider.getBlockNumber();
+      console.log(`✅ RPC 연결 성공: ${rpcUrl}`);
+      return provider;
+    } catch (error) {
+      console.log(`❌ RPC 실패: ${rpcUrl}`);
+      continue;
+    }
+  }
+  throw new Error('모든 RPC 연결 실패');
+}
 
 // MetaMask 연결 및 네트워크 설정
 export async function connectMetaMask() {
@@ -135,7 +184,7 @@ async function switchToAmoy() {
           chainId: `0x${POLYGON_CONFIG.CHAIN_ID.toString(16)}`,
           chainName: POLYGON_CONFIG.CHAIN_NAME,
           nativeCurrency: POLYGON_CONFIG.NATIVE_TOKEN,
-          rpcUrls: [POLYGON_CONFIG.RPC_URL],
+          rpcUrls: POLYGON_CONFIG.RPC_URLS,
           blockExplorerUrls: [POLYGON_CONFIG.BLOCK_EXPLORER]
         }]
       });
@@ -218,23 +267,38 @@ export async function registerInsuranceAsset(assetData: {
       throw new Error(`USDC 잔액 부족. 필요: ${regFeeFormatted} USDC, 보유: ${ethers.formatUnits(balance, 6)} USDC`);
     }
     
-    // 2. USDC approve (가스비 최적화)
-    try {
-      // 가스비 추정
-      const gasEstimate = await usdcContract.approve.estimateGas(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee);
-      const gasLimit = gasEstimate * BigInt(120) / BigInt(100); // 20% 여유분
+    // 2. USDC approve (재시도 로직 포함)
+    await retryWithFallback(async () => {
+      console.log('💰 USDC approve 시작...');
+      
+      // 가스비 추정 with fallback
+      const gasEstimate = await retryWithFallback(async () => {
+        return await usdcContract.approve.estimateGas(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee);
+      }, 2, 500);
+      
+      const gasLimit = gasEstimate * BigInt(150) / BigInt(100); // 50% 여유분 (Amoy 불안정성)
+      
+      console.log(`⛽ Gas 설정: ${gasLimit.toString()}`);
       
       const approveTx = await usdcContract.approve(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee, {
-        gasLimit: gasLimit
+        gasLimit: gasLimit,
+        maxFeePerGas: ethers.parseUnits('50', 'gwei'), // 명시적 가스 가격
+        maxPriorityFeePerGas: ethers.parseUnits('30', 'gwei')
       });
       
-      console.log('⏳ USDC approve 대기 중...');
-      await approveTx.wait();
-      console.log('✅ USDC approve 완료');
-    } catch (approveError) {
-      console.error('❌ USDC approve 실패:', approveError);
-      throw new Error(`USDC 승인 실패: ${approveError.message}`);
-    }
+      console.log('⏳ USDC approve 대기 중...', approveTx.hash);
+      
+      // 트랜잭션 확인 with timeout
+      const receipt = await Promise.race([
+        approveTx.wait(),
+        new Promise((_, reject) => 
+          setTimeout(() => reject(new Error('Transaction timeout')), 60000)
+        )
+      ]);
+      
+      console.log('✅ USDC approve 완료:', receipt.hash);
+      return receipt;
+    }, 3, 2000);
     
     // 3. 데이터 변환
     const processedData = {
