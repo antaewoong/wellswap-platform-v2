@@ -342,3 +342,4 @@ export function performClientSideAIValuation(policy: InsurancePolicy): Valuation
     }
   };
 }
+}

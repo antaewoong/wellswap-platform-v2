@@ -1,4 +1,4 @@
-import React, { useState, useEffect, useMemo } from 'react';
+import React, { useState, useEffect, useMemo, useRef } from 'react';
 import { supabase } from '../lib/database-wellswap';
 
 interface Inquiry {
@@ -84,29 +84,36 @@ export const AdminInquiryPanel: React.FC<AdminInquiryPanelProps> = ({ user }) =>
     }
   };
 
-  // 어드민 권한 확인 (솔라나 주소 지원) - 메모이제이션으로 최적화
+  // 기존 불필요한 ref 제거 (성능 최적화 완료)
+
+  // 주소 문자열만 의존하게 (user 객체 전체 X)
+  const userAddressStr = useMemo(() => {
+    if (!user) return null;
+    return user.wallet_address || user.publicKey || user.address || null;
+  }, [user]);
+
+  // 관리자 권한 캐시
+  const adminResultCache = useRef<Map<string, boolean>>(new Map());
+
+  // 어드민 권한 확인 (솔라나 주소 지원) - 최적화된 버전
   const isAdmin = useMemo(() => {
-    if (!user) return false;
+    if (!userAddressStr) return false;
     
-    // 지갑 주소 확인 (여러 필드에서 확인)
-    const walletAddress = user.wallet_address || user.publicKey || user.address;
-    if (!walletAddress) return false;
+    // 캐시에서 결과 확인
+    if (adminResultCache.current.has(userAddressStr)) {
+      return adminResultCache.current.get(userAddressStr)!;
+    }
     
-    const accountStr = walletAddress.toString().toLowerCase();
+    const accountStr = userAddressStr.toString().toLowerCase();
     const isAdminWallet = ADMIN_WALLETS.some(wallet => 
       wallet.toLowerCase() === accountStr
     );
     
-    // 로그는 개발 모드에서만 출력하고 빈도 제한
-    if (isAdminWallet && process.env.NODE_ENV === 'development') {
-      console.log('🔍 AdminInquiryPanel 관리자 권한 확인:', {
-        walletAddress: accountStr,
-        isAdminWallet
-      });
-    }
+    // 결과를 캐시에 저장
+    adminResultCache.current.set(userAddressStr, isAdminWallet);
     
     return isAdminWallet;
-  }, [user]);
+  }, [userAddressStr]);
 
   useEffect(() => {
     if (isAdmin) {

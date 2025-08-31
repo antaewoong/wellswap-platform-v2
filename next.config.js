@@ -1,5 +1,5 @@
 /** @type {import('next').NextConfig} */
-const nextConfig = {
+export default {
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true
@@ -45,6 +45,4 @@ const nextConfig = {
   compress: true,
   poweredByHeader: false,
   generateEtags: false,
-}
-
-export default nextConfig;
+};

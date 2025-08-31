@@ -1,4 +1,5 @@
 // lib/ocr-cdn.ts - CDN 기반 OCR 서비스 (npm 설치 불필요)
+import { config } from './config';
 
 export class OCRCDNService {
   private static isLoaded = false;
@@ -295,8 +296,6 @@ export class OCRCDNService {
 // Hugging Face AI 분석 서비스 (선택사항)
 export class HuggingFaceOCRService {
   private static readonly API_URL = 'https://api-inference.huggingface.co/models/microsoft/trocr-base-printed';
-import { config } from './config';
-
   private static readonly API_TOKEN = config.NEXT_PUBLIC_HUGGINGFACE_TOKEN || '';
 
   static async analyzeImage(file: File): Promise<any> {

@@ -7,7 +7,7 @@ export class SolanaClient {
   private connection: Connection;
   private provider: AnchorProvider;
   private program: Program;
-  private usdtMint: PublicKey;
+  private usdcMint: PublicKey;
 
   constructor() {
     // Devnet 연결
@@ -16,8 +16,8 @@ export class SolanaClient {
       'confirmed'
     );
 
-    // USDT Devnet Mint Address
-    this.usdtMint = new PublicKey('Es9vMFrzaCERmJfrF4H2FYD4KCoNkY11McCe8BenwNYB');
+    // USDC Devnet Mint Address
+    this.usdcMint = new PublicKey('Gh9ZwEmdLJ8DscKNTkTqPbNwLNNBjuSzaG9Vp2KGtKJr');
 
     // Provider 설정 (지갑 연결 후 설정)
     this.provider = {} as AnchorProvider;
@@ -32,10 +32,10 @@ export class SolanaClient {
       { commitment: 'confirmed' }
     );
     
-    this.program = new Program(IDL, new PublicKey('Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS'), this.provider);
+    this.program = new Program(IDL, new PublicKey('27btQLJWLR8qNF28Lbp9QHD6bfGZwFMt4L2Rkn7STnXf'), this.provider);
   }
 
-  // USDT 토큰 계정 생성
+      // USDC 토큰 계정 생성
   async createTokenAccount(mint: PublicKey, owner: PublicKey): Promise<PublicKey> {
     const associatedTokenAccount = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
@@ -81,15 +81,15 @@ export class SolanaClient {
       this.program.programId
     );
 
-    // 사용자 USDT 계정
+    // 사용자 USDC 계정
     const userTokenAccount = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      this.usdtMint,
+      this.usdcMint,
       user
     );
 
-    // 플랫폼 USDT 계정 (관리자 계정)
+    // 플랫폼 USDC 계정 (관리자 계정)
     const platformTokenAccount = new PublicKey('YOUR_PLATFORM_TOKEN_ACCOUNT');
 
     try {
@@ -102,7 +102,7 @@ export class SolanaClient {
             contractDate: new BN(assetData.contractDate),
             contractPeriod: assetData.contractPeriod,
             paidPeriod: assetData.paidPeriod,
-            annualPremium: new BN(assetData.annualPremium * 1e6), // USDT 6 decimals
+            annualPremium: new BN(assetData.annualPremium * 1e6), // USDC 6 decimals
             totalPaid: new BN(assetData.totalPaid * 1e6),
           },
           new BN(registrationFee * 1e6)
@@ -132,11 +132,11 @@ export class SolanaClient {
   ) {
     const buyer = this.provider.wallet.publicKey;
     
-    // 구매자 USDT 계정
+    // 구매자 USDC 계정
     const buyerTokenAccount = await Token.getAssociatedTokenAddress(
       ASSOCIATED_TOKEN_PROGRAM_ID,
       TOKEN_PROGRAM_ID,
-      this.usdtMint,
+      this.usdcMint,
       buyer
     );
 
@@ -239,13 +239,13 @@ export class SolanaClient {
     return balance / web3.LAMPORTS_PER_SOL;
   }
 
-  // USDT 잔액 조회
-  async getUsdtBalance(tokenAccount: PublicKey): Promise<number> {
+  // USDC 잔액 조회
+  async getUsdcBalance(tokenAccount: PublicKey): Promise<number> {
     try {
       const accountInfo = await this.connection.getTokenAccountBalance(tokenAccount);
       return accountInfo.value.uiAmount || 0;
     } catch (error) {
-      console.error('USDT 잔액 조회 실패:', error);
+      console.error('USDC 잔액 조회 실패:', error);
       return 0;
     }
   }

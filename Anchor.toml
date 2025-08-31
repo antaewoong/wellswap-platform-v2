@@ -2,11 +2,14 @@
 seeds = false
 skip-lint = false
 
+[toolchain]
+anchor_version = "0.31.1"
+
 [programs.localnet]
-wellswap_complete = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+wellswap_insurance = "27btQLJWLR8qNF28Lbp9QHD6bfGZwFMt4L2Rkn7STnXf"
 
 [programs.devnet]
-wellswap_complete = "Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS"
+wellswap_insurance = "27btQLJWLR8qNF28Lbp9QHD6bfGZwFMt4L2Rkn7STnXf"
 
 [registry]
 url = "https://api.apr.dev"

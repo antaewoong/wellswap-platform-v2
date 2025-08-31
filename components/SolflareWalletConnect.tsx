@@ -1,6 +1,6 @@
 'use client';
 
-import React, { useEffect, useState, useCallback } from 'react';
+import React, { useEffect, useState, useCallback, useMemo, useRef } from 'react';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
 import { TOKEN_PROGRAM_ID, getAssociatedTokenAddress } from '@solana/spl-token';
 
@@ -35,11 +35,16 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
   const [usdtBalance, setUsdtBalance] = useState<number>(0);
   const [isLoading, setIsLoading] = useState<boolean>(false);
 
-  // Solana 연결 설정
-  const connection = new Connection(
-    process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com',
-    'confirmed'
-  );
+  // 중복 호출 가드 + 스로틀
+  const lastCheckedPubkeyRef = useRef<string | null>(null);
+  const balanceFetchLockRef = useRef(false);
+
+  // Solana 연결 설정 - useMemo로 고정
+  const RPC_URL = process.env.NEXT_PUBLIC_SOLANA_RPC_URL || 'https://api.devnet.solana.com';
+  const connection = useMemo(() => {
+    console.log('🔗 Solana RPC 연결 설정:', RPC_URL);
+    return new Connection(RPC_URL, 'confirmed');
+  }, [RPC_URL]);
 
   // USDC 토큰 주소 (Devnet)
   const USDC_MINT = new PublicKey(
@@ -77,37 +82,41 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
     };
   }, []);
 
-  // 지갑 연결 상태 모니터링
-  useEffect(() => {
-    if (!wallet) return;
-
-    const handleAccountChange = () => {
-      if (wallet.isConnected && wallet.publicKey) {
-        // 이미 연결된 상태에서는 connect() 호출하지 않고 바로 처리
-        handleWalletConnected();
-      } else {
-        handleDisconnect();
-      }
-    };
-
-    // 연결 상태 확인 - 이미 연결되어 있으면 바로 처리
-    if (wallet.isConnected && wallet.publicKey) {
-      handleWalletConnected();
+  // 지갑 연결 해제
+  const handleDisconnect = useCallback(async () => {
+    try {
+      await wallet?.disconnect?.();
+      setBalance(0);
+      setUsdtBalance(0);
+      onDisconnect();
+      console.log('🔌 Solflare 지갑 연결 해제');
+    } catch (error) {
+      console.error('❌ 지갑 연결 해제 실패:', error);
+      onError('지갑 연결 해제에 실패했습니다');
     }
+  }, [wallet, onDisconnect, onError]);
 
-    // 이벤트 리스너 등록
-    wallet.on?.('connect', handleAccountChange);
-    wallet.on?.('disconnect', handleDisconnect);
-
-    return () => {
-      wallet.off?.('connect', handleAccountChange);
-      wallet.off?.('disconnect', handleDisconnect);
-    };
-  }, [wallet]);
-
-  // 지갑 연결 처리 (이미 연결된 상태에서 호출)
+  // 지갑 연결 처리 (중복 호출 가드 + 스로틀 적용)
   const handleWalletConnected = useCallback(async () => {
     if (!wallet?.publicKey) return;
+    
+    const pk = wallet.publicKey.toBase58();
+    if (!pk) return;
+
+    // 동일 주소 중복 방지 (더 엄격하게)
+    if (lastCheckedPubkeyRef.current === pk) {
+      if (process.env.NODE_ENV === 'development') console.log('[wallet] skip duplicate balance fetch for:', pk);
+      return;
+    }
+    
+    // 스로틀링 강화
+    if (balanceFetchLockRef.current) {
+      if (process.env.NODE_ENV === 'development') console.log('[wallet] balance fetch locked, skipping');
+      return;
+    }
+    
+    balanceFetchLockRef.current = true;
+    lastCheckedPubkeyRef.current = pk;
 
     setIsLoading(true);
     try {
@@ -116,54 +125,102 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
       
       // SOL 잔액 조회 (에러 처리 개선)
       try {
-        console.log('🔍 SOL 잔액 조회 시작:', wallet.publicKey.toString());
+        if (process.env.NODE_ENV === 'development') {
+          console.log('🔍 SOL 잔액 조회 시작:', publicKey);
+        }
         const solBalance = await connection.getBalance(wallet.publicKey);
         solBalanceFormatted = solBalance / LAMPORTS_PER_SOL;
         setBalance(solBalanceFormatted);
-        console.log('✅ SOL 잔액 조회 성공:', solBalanceFormatted);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ SOL 잔액 조회 성공:', solBalanceFormatted);
+        }
       } catch (error) {
-        console.error('❌ SOL 잔액 조회 실패:', error);
-        console.error('❌ 에러 상세:', {
-          message: error.message,
-          code: error.code,
-          publicKey: wallet.publicKey.toString(),
-          rpcUrl: process.env.NEXT_PUBLIC_SOLANA_RPC_URL
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.error('❌ SOL 잔액 조회 실패:', error);
+        }
         setBalance(0);
       }
 
       // USDC 잔액 조회 (에러 처리 개선)
       try {
-        console.log('🔍 USDC 잔액 조회 시작:', wallet.publicKey.toString());
         const usdcTokenAccount = await getAssociatedTokenAddress(
           USDC_MINT,
           wallet.publicKey
         );
-        console.log('🔍 USDC 토큰 계정 주소:', usdcTokenAccount.toString());
         const usdcAccountInfo = await connection.getTokenAccountBalance(usdcTokenAccount);
         const usdcBalanceFormatted = usdcAccountInfo.value.uiAmount || 0;
         setUsdtBalance(usdcBalanceFormatted);
-        console.log('✅ USDC 잔액 조회 성공:', usdcBalanceFormatted);
+        if (process.env.NODE_ENV === 'development') {
+          console.log('✅ USDC 잔액 조회 성공:', usdcBalanceFormatted);
+        }
       } catch (error) {
-        console.log('ℹ️ USDC 토큰 계정이 없습니다 - 필요시 자동 생성됩니다');
-        console.log('ℹ️ 에러 상세:', {
-          message: error.message,
-          code: error.code,
-          publicKey: wallet.publicKey.toString(),
-          usdcMint: USDC_MINT.toString()
-        });
+        if (process.env.NODE_ENV === 'development') {
+          console.log('ℹ️ USDC 토큰 계정이 없습니다 - 필요시 자동 생성됩니다');
+        }
         setUsdtBalance(0);
       }
 
       onConnect(publicKey, solBalanceFormatted);
-      console.log('✅ Solflare 지갑 연결 성공:', publicKey);
+      if (process.env.NODE_ENV === 'development') {
+        console.log('✅ Solflare 지갑 연결 성공:', publicKey);
+      }
     } catch (error) {
       console.error('❌ 지갑 연결 처리 실패:', error);
       onError('지갑 연결 처리에 실패했습니다');
     } finally {
       setIsLoading(false);
+      // 스로틀링 시간을 더 길게 설정
+      setTimeout(() => {
+        balanceFetchLockRef.current = false;
+        if (process.env.NODE_ENV === 'development') {
+          console.log('[wallet] balance fetch lock released');
+        }
+      }, 3000); // 3초로 증가
     }
   }, [wallet, connection, onConnect, onError]);
+
+  // 지갑 연결 상태 모니터링 - 이벤트 기반으로만 처리
+  useEffect(() => {
+    if (!wallet) return;
+
+    const onConnect = () => {
+      console.log('🔗 Solflare 지갑 연결 이벤트 발생');
+      handleWalletConnected();
+    };
+    const onDisconnect = () => {
+      console.log('🔌 Solflare 지갑 연결 해제 이벤트 발생');
+      handleDisconnect();
+    };
+
+    // 이벤트 리스너 등록 (타입 안전하게)
+    try {
+      const walletAny = wallet as any;
+      if (typeof walletAny.on === 'function') {
+        walletAny.on('connect', onConnect);
+        walletAny.on('disconnect', onDisconnect);
+      }
+    } catch (error) {
+      console.warn('지갑 이벤트 리스너 등록 실패:', error);
+    }
+
+    // 이미 연결되어 있으면 초기화 (한 번만)
+    if (wallet.isConnected && wallet.publicKey && !lastCheckedPubkeyRef.current) {
+      console.log('🔗 이미 연결된 지갑 감지 - 초기화');
+      handleWalletConnected();
+    }
+
+    return () => {
+      try {
+        const walletAny = wallet as any;
+        if (typeof walletAny.off === 'function') {
+          walletAny.off('connect', onConnect);
+          walletAny.off('disconnect', onDisconnect);
+        }
+      } catch (error) {
+        console.warn('지갑 이벤트 리스너 해제 실패:', error);
+      }
+    };
+  }, [wallet]); // 의존성 배열에서 handleWalletConnected, handleDisconnect 제거
 
   // 지갑 연결 (새로 연결할 때만 호출)
   const handleConnect = useCallback(async () => {
@@ -196,20 +253,6 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
       setIsLoading(false);
     }
   }, [wallet, handleWalletConnected, onError]);
-
-  // 지갑 연결 해제
-  const handleDisconnect = useCallback(async () => {
-    try {
-      await wallet?.disconnect?.();
-      setBalance(0);
-      setUsdtBalance(0);
-      onDisconnect();
-      console.log('🔌 Solflare 지갑 연결 해제');
-    } catch (error) {
-      console.error('❌ 지갑 연결 해제 실패:', error);
-      onError('지갑 연결 해제에 실패했습니다');
-    }
-  }, [wallet, onDisconnect, onError]);
 
   // 테스트 SOL 받기 (Devnet)
   const requestAirdrop = async () => {

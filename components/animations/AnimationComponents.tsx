@@ -647,10 +647,12 @@ export const AnimatedMainTitle = ({
 // 🌊 Gradient Background
 export const GradientBackground = ({ 
   children, 
-  className = ""
+  className = "",
+  colors
 }: {
   children: React.ReactNode;
   className?: string;
+  colors?: string[];
 }) => {
   return (
     <div className={`bg-gradient-to-br ${className}`}>

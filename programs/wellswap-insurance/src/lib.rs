@@ -1,7 +1,8 @@
 use anchor_lang::prelude::*;
+// InitSpace/#[max_len]는 0.31에서 가변 필드에 필수
 use anchor_spl::token::{self, Token, TokenAccount, Transfer};
 
-declare_id!("Fg6PaFpoGXkYsidMpWTK6W2BeZ7FEfcYkg476zPFsLnS");
+declare_id!("27btQLJWLR8qNF28Lbp9QHD6bfGZwFMt4L2Rkn7STnXf");
 
 #[program]
 pub mod wellswap_insurance {
@@ -181,12 +182,12 @@ pub struct ApproveMultisigTrade<'info> {
 #[derive(InitSpace)]
 pub struct InsuranceAsset {
     pub owner: Pubkey,
-    pub insurance_company: String,
-    pub product_category: String,
-    pub product_name: String,
+    #[max_len(32)] pub insurance_company: String,
+    #[max_len(24)] pub product_category: String,
+    #[max_len(64)] pub product_name: String,
     pub contract_date: i64,
-    pub contract_period: String,
-    pub paid_period: String,
+    #[max_len(16)] pub contract_period: String,
+    #[max_len(16)] pub paid_period: String,
     pub annual_premium: u64,
     pub total_paid: u64,
     pub is_for_sale: bool,
@@ -201,11 +202,12 @@ pub struct MultisigTrade {
     pub initiator: Pubkey,
     pub trade_amount: u64,
     pub status: TradeStatus,
-    pub approvers: Vec<Pubkey>,
+    #[max_len(3)] pub approvers: Vec<Pubkey>, // 2/3 멀티시그면 최대 3명 가정
     pub created_at: i64,
 }
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, PartialEq, Eq, InitSpace)]
+#[repr(u8)]
 pub enum TradeStatus {
     Pending,
     Approved,
@@ -215,12 +217,12 @@ pub enum TradeStatus {
 
 #[derive(AnchorSerialize, AnchorDeserialize, Clone, InitSpace)]
 pub struct InsuranceAssetData {
-    pub insurance_company: String,
-    pub product_category: String,
-    pub product_name: String,
+    #[max_len(32)] pub insurance_company: String,
+    #[max_len(24)] pub product_category: String,
+    #[max_len(64)] pub product_name: String,
     pub contract_date: i64,
-    pub contract_period: String,
-    pub paid_period: String,
+    #[max_len(16)] pub contract_period: String,
+    #[max_len(16)] pub paid_period: String,
     pub annual_premium: u64,
     pub total_paid: u64,
 }

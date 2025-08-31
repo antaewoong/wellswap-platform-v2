@@ -1,6 +1,21 @@
+export type WellswapInsurance = {
+  "version": "0.1.0",
+  "name": "wellswap_insurance",
+  "instructions": Array<any>,
+  "accounts": Array<any>,
+  "types": Array<any>,
+  "events": Array<any>,
+  "errors": Array<any>,
+  "metadata": {
+    "address": "27btQLJWLR8qNF28Lbp9QHD6bfGZwFMt4L2Rkn7STnXf",
+    "name": "wellswap_insurance",
+    "version": "0.1.0"
+  }
+};
+
 export const IDL = {
   "version": "0.1.0",
-  "name": "wellswap_new",
+  "name": "wellswap_insurance",
   "instructions": [
     {
       "name": "registerInsuranceAsset",
@@ -491,5 +506,11 @@ export const IDL = {
       "name": "InvalidTradeAmount",
       "msg": "Invalid trade amount"
     }
-  ]
+  ],
+  "metadata": {
+    "address": "27btQLJWLR8qNF28Lbp9QHD6bfGZwFMt4L2Rkn7STnXf",
+    "name": "wellswap_insurance",
+    "version": "0.1.0"
+  }
 };
+export type WellswapInsurance = typeof IDL;
