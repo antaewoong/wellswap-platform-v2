@@ -221,11 +221,11 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
             <DynamicTypewriter 
               texts={[
                 "WELLSWAP", 
-                "保险交易", // Chinese - Insurance Trading
-                "Versicherung", // German - Insurance (shorter)
-                "保険取引", // Japanese - Insurance Trading
-                "ASSURANCE", // French - Insurance
-                "SEGUROS" // Spanish - Insurance
+                "优享", // Chinese - Excellent Sharing (優秀 + 享受)
+                "GUTSWAP", // German - Good Swap  
+                "ウェルスワップ", // Japanese - Well Swap (katakana brand name)
+                "BONÉCHANGE", // French - Good Exchange
+                "BIENCAMBIO" // Spanish - Good Change
               ]}
               speed={120}
               deleteSpeed={60}
