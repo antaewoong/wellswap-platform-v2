@@ -217,10 +217,25 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
     <div className="space-y-16">
       <div className="text-center space-y-8">
         <div className="relative">
-          <MobileHeroText 
-            primaryText={t.mainTitle}
-            className="relative z-10 select-none"
-          />
+          <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10 text-center">
+            <DynamicTypewriter 
+              texts={[
+                "WELLSWAP", 
+                "保险交易", // Chinese - Insurance Trading
+                "Versicherungshandel", // German - Insurance Trading  
+                "保険取引", // Japanese - Insurance Trading
+                "거래소", // Korean - Exchange
+                "ASSURANCE", // French - Insurance
+                "SEGUROS" // Spanish - Insurance
+              ]}
+              speed={120}
+              deleteSpeed={60}
+              delayBetweenTexts={3000}
+              gradient={true}
+              scale={true}
+              className="text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text"
+            />
+          </h1>
           <GradientBackground 
             className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
             colors={["from-zinc-100", "via-zinc-200", "to-zinc-100"]}
