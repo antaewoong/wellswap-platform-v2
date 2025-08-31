@@ -1239,7 +1239,7 @@ export const InquiryPage = React.memo(function InquiryPage({
         <div className="relative">
           <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10">
             <DynamicTypewriter 
-              texts={["CONCIERGE", "컨시어지", "PREMIUM SERVICE"]}
+              texts={["CONCIERGE", "PREMIUM SERVICE", "LUXURY SUPPORT"]}
               speed={100}
               deleteSpeed={80}
               delayBetweenTexts={2500}

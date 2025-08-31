@@ -24,7 +24,8 @@ const POLYGON_CONFIG = {
 // Polygon 메인넷 주소들
 const CONTRACT_ADDRESSES = {
   WELLSWAP_CONTRACT: '0x78198e6862bAae2D448Ef80f94f09184b3188973', // 메인넷 배포 주소
-  USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Polygon USDC (Circle 공식)
+  USDC: '0x3c499c542cEF5E3811e1192ce70d8cC03d5c3359', // Polygon USDC (Native USDC - 최신)
+  USDC_LEGACY: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // 레거시 USDC (bridged)
   USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'  // Polygon USDT (필요시)
 };
 
@@ -194,30 +195,60 @@ async function switchToAmoy() {
   }
 }
 
-// USDC 잔액 조회
+// USDC 잔액 조회 (Native + Legacy USDC 모두 확인)
 export async function getUSDCBalance(address: string) {
-  console.log('💰 USDC 잔액 조회 중...', address);
+  console.log('💰 USDC 잔액 조회 중 (Native + Legacy)...', address);
   
   try {
     const { provider } = await connectMetaMask();
-    const usdcContract = new ethers.Contract(CONTRACT_ADDRESSES.USDC, ERC20_ABI, provider);
     
-    const balance = await usdcContract.balanceOf(address);
-    const decimals = await usdcContract.decimals();
-    const symbol = await usdcContract.symbol();
+    // Native USDC 확인
+    const nativeUsdcContract = new ethers.Contract(CONTRACT_ADDRESSES.USDC, ERC20_ABI, provider);
+    const nativeBalance = await nativeUsdcContract.balanceOf(address);
+    const nativeDecimals = await nativeUsdcContract.decimals();
+    const nativeSymbol = await nativeUsdcContract.symbol();
+    const nativeFormatted = ethers.formatUnits(nativeBalance, nativeDecimals);
     
-    const formattedBalance = ethers.formatUnits(balance, decimals);
+    // Legacy USDC 확인
+    const legacyUsdcContract = new ethers.Contract(CONTRACT_ADDRESSES.USDC_LEGACY, ERC20_ABI, provider);
+    const legacyBalance = await legacyUsdcContract.balanceOf(address);
+    const legacyDecimals = await legacyUsdcContract.decimals();
+    const legacySymbol = await legacyUsdcContract.symbol();
+    const legacyFormatted = ethers.formatUnits(legacyBalance, legacyDecimals);
     
-    console.log(`✅ ${symbol} 잔액:`, formattedBalance);
+    console.log(`✅ Native ${nativeSymbol} 잔액:`, nativeFormatted);
+    console.log(`✅ Legacy ${legacySymbol} 잔액:`, legacyFormatted);
+    
+    // 더 많은 잔액이 있는 것을 사용
+    const useNative = parseFloat(nativeFormatted) >= parseFloat(legacyFormatted);
+    const selectedBalance = useNative ? nativeBalance : legacyBalance;
+    const selectedFormatted = useNative ? nativeFormatted : legacyFormatted;
+    const selectedSymbol = useNative ? nativeSymbol : legacySymbol;
+    const selectedAddress = useNative ? CONTRACT_ADDRESSES.USDC : CONTRACT_ADDRESSES.USDC_LEGACY;
+    
+    console.log(`🎯 사용할 USDC: ${useNative ? 'Native' : 'Legacy'} (${selectedFormatted})`);
+    
     return {
-      balance: formattedBalance,
-      symbol,
-      raw: balance
+      balance: selectedFormatted,
+      symbol: selectedSymbol,
+      raw: selectedBalance,
+      contractAddress: selectedAddress,
+      isNative: useNative,
+      nativeBalance: nativeFormatted,
+      legacyBalance: legacyFormatted
     };
     
   } catch (error) {
     console.error('❌ USDC 잔액 조회 실패:', error);
-    return { balance: '0', symbol: 'USDC', raw: BigInt(0) };
+    return { 
+      balance: '0', 
+      symbol: 'USDC', 
+      raw: BigInt(0),
+      contractAddress: CONTRACT_ADDRESSES.USDC,
+      isNative: true,
+      nativeBalance: '0',
+      legacyBalance: '0'
+    };
   }
 }
 
@@ -261,26 +292,32 @@ export async function registerInsuranceAsset(assetData: {
     
     console.log('💰 현재 등록비:', regFeeFormatted, 'USDC');
     
-    // 1. USDC 잔액 확인
-    const balance = await usdcContract.balanceOf(address);
-    if (balance < registrationFee) {
-      throw new Error(`USDC 잔액 부족. 필요: ${regFeeFormatted} USDC, 보유: ${ethers.formatUnits(balance, 6)} USDC`);
+    // 1. USDC 잔액 확인 (Native + Legacy)
+    const usdcInfo = await getUSDCBalance(address);
+    if (parseFloat(usdcInfo.balance) < parseFloat(regFeeFormatted)) {
+      throw new Error(`USDC 잔액 부족. 필요: ${regFeeFormatted} USDC, 보유: ${usdcInfo.balance} ${usdcInfo.symbol} (Native: ${usdcInfo.nativeBalance}, Legacy: ${usdcInfo.legacyBalance})`);
     }
     
-    // 2. USDC approve (재시도 로직 포함)
+    // 사용할 USDC 컨트랙트 동적 선택
+    const actualUsdcAddress = usdcInfo.contractAddress;
+    console.log('🎯 선택된 USDC 주소:', actualUsdcAddress, usdcInfo.isNative ? '(Native)' : '(Legacy)');
+    
+    // 2. USDC approve (재시도 로직 포함) - 동적 USDC 주소 사용
+    const dynamicUsdcContract = new ethers.Contract(actualUsdcAddress, ERC20_ABI, signer);
+    
     await retryWithFallback(async () => {
-      console.log('💰 USDC approve 시작...');
+      console.log('💰 USDC approve 시작... (주소:', actualUsdcAddress, ')');
       
       // 가스비 추정 with fallback
       const gasEstimate = await retryWithFallback(async () => {
-        return await usdcContract.approve.estimateGas(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee);
+        return await dynamicUsdcContract.approve.estimateGas(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee);
       }, 2, 500);
       
-      const gasLimit = gasEstimate * BigInt(150) / BigInt(100); // 50% 여유분 (Amoy 불안정성)
+      const gasLimit = gasEstimate * BigInt(150) / BigInt(100); // 50% 여유분
       
       console.log(`⛽ Gas 설정: ${gasLimit.toString()}`);
       
-      const approveTx = await usdcContract.approve(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee, {
+      const approveTx = await dynamicUsdcContract.approve(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee, {
         gasLimit: gasLimit,
         maxFeePerGas: ethers.parseUnits('80', 'gwei'), // 메인넷 적정 가스
         maxPriorityFeePerGas: ethers.parseUnits('40', 'gwei')
