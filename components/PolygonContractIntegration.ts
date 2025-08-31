@@ -249,10 +249,10 @@ export async function registerInsuranceAsset(assetData: {
     };
     
     // 4. WellSwap 컨트랙트에 실제 등록
-    const wellswapContract = new ethers.Contract(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, WELLSWAP_ABI, signer);
+    const contractForRegister = new ethers.Contract(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, WELLSWAP_ABI, signer);
     
     console.log('🔄 WellSwap 컨트랙트 등록 중...');
-    const registerTx = await wellswapContract.registerInsuranceAsset(
+    const registerTx = await contractForRegister.registerInsuranceAsset(
       processedData.insuranceCompany,
       processedData.productName,
       processedData.productCategory,
