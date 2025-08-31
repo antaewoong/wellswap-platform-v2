@@ -67,7 +67,6 @@ import {
   PageTransition,
   SmoothReveal,
   FloatingButton,
-  MagneticButton,
   PremiumInput
 } from './ui/PremiumAnimations';
 import {
@@ -271,40 +270,46 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
         
         <SmoothReveal delay={1.4} direction="up">
           <div className="flex flex-col sm:flex-row gap-6 justify-center items-center pt-8">
-            <MagneticButton
+            <GlassButton 
+              variant="primary" 
+              size="lg"
+              magnetic={true}
+              magneticStrength={0.3}
               onClick={() => setCurrentPage('sell')}
               className="group"
             >
-              <GlassButton variant="primary" size="lg">
-                <span className="flex items-center gap-2">
-                  {t.getStarted}
-                  <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
-                </span>
-              </GlassButton>
-            </MagneticButton>
+              <span className="flex items-center gap-2">
+                {t.getStarted}
+                <ArrowRight className="w-4 h-4 group-hover:translate-x-1 transition-transform duration-300" />
+              </span>
+            </GlassButton>
 
-            <MagneticButton
+            <GlassButton 
+              variant="secondary" 
+              size="lg"
+              magnetic={true}
+              magneticStrength={0.3}
               onClick={() => setCurrentPage('buy')}
               className="group"
             >
-              <GlassButton variant="secondary" size="lg">
-                <span className="flex items-center gap-2">
-                  {t.learnMore}
-                  <Globe className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
-                </span>
-              </GlassButton>
-            </MagneticButton>
-            <MagneticButton
+              <span className="flex items-center gap-2">
+                {t.learnMore}
+                <Globe className="w-4 h-4 group-hover:rotate-12 transition-transform duration-300" />
+              </span>
+            </GlassButton>
+            <GlassButton 
+              variant="accent" 
+              size="lg"
+              magnetic={true}
+              magneticStrength={0.3}
               onClick={() => setShowWalletConnectModal(true)}
               className="group"
             >
-              <GlassButton variant="accent" size="lg">
-                <span className="flex items-center gap-2">
-                  <Wallet className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
-                  Connect Wallet
-                </span>
-              </GlassButton>
-            </MagneticButton>
+              <span className="flex items-center gap-2">
+                <Wallet className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                Connect Wallet
+              </span>
+            </GlassButton>
           </div>
         </SmoothReveal>
       </div>

@@ -1,6 +1,6 @@
 'use client';
 
-import React from 'react';
+import React, { useRef, useState } from 'react';
 import { motion } from 'framer-motion';
 
 // 🔮 Premium Glassmorphism Components for Luxury UI
@@ -63,14 +63,38 @@ export const GlassCard = ({
   );
 };
 
-// Glass Button - Premium Interactive
+// Glass Button - Premium Interactive with Magnetic Effects
 export const GlassButton = ({ 
   children, 
   variant = 'primary',
   size = 'md',
   className = '',
+  magnetic = false,
+  magneticStrength = 0.3,
   ...props 
 }) => {
+  const ref = useRef(null);
+  const [magneticPosition, setMagneticPosition] = useState({ x: 0, y: 0 });
+
+  const handleMouseMove = (e) => {
+    if (!ref.current || !magnetic) return;
+    
+    const rect = ref.current.getBoundingClientRect();
+    const centerX = rect.left + rect.width / 2;
+    const centerY = rect.top + rect.height / 2;
+    
+    const deltaX = (e.clientX - centerX) * magneticStrength;
+    const deltaY = (e.clientY - centerY) * magneticStrength;
+    
+    setMagneticPosition({ x: deltaX, y: deltaY });
+  };
+
+  const handleMouseLeave = () => {
+    if (magnetic) {
+      setMagneticPosition({ x: 0, y: 0 });
+    }
+  };
+
   const variants = {
     primary: `
       bg-white/20 hover:bg-white/30 text-neutral-800 
@@ -99,15 +123,28 @@ export const GlassButton = ({
 
   return (
     <motion.button
+      ref={ref}
       className={`
         relative inline-flex items-center justify-center gap-2 font-medium 
         rounded-xl backdrop-blur-md transition-all duration-300 ease-out
         focus:outline-none focus:ring-2 focus:ring-white/50 focus:ring-offset-2
-        disabled:opacity-50 overflow-hidden group
+        disabled:opacity-50 overflow-hidden group cursor-pointer
         ${variants[variant]} ${sizes[size]} ${className}
       `}
+      style={{ willChange: 'transform' }}
       whileHover={{ scale: 1.05 }}
       whileTap={{ scale: 0.98 }}
+      animate={magnetic ? { 
+        x: magneticPosition.x, 
+        y: magneticPosition.y 
+      } : {}}
+      transition={magnetic ? {
+        type: 'spring',
+        stiffness: 400,
+        damping: 40
+      } : {}}
+      onMouseMove={handleMouseMove}
+      onMouseLeave={handleMouseLeave}
       {...props}
     >
       {/* Glass shine effect */}
