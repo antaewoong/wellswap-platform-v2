@@ -222,9 +222,8 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
               texts={[
                 "WELLSWAP", 
                 "保险交易", // Chinese - Insurance Trading
-                "Versicherungshandel", // German - Insurance Trading  
+                "Versicherung", // German - Insurance (shorter)
                 "保険取引", // Japanese - Insurance Trading
-                "거래소", // Korean - Exchange
                 "ASSURANCE", // French - Insurance
                 "SEGUROS" // Spanish - Insurance
               ]}
@@ -233,7 +232,7 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
               delayBetweenTexts={3000}
               gradient={true}
               scale={true}
-              className="text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text"
+              className="text-transparent bg-gradient-to-r from-indigo-600 via-purple-600 to-pink-600 bg-clip-text whitespace-nowrap"
             />
           </h1>
           <GradientBackground 

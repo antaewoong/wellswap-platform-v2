@@ -78,16 +78,23 @@ export const DynamicTypewriter = ({
 
   return (
     <motion.span
-      className={`${className} ${gradientClass} ${scaleClass} ${blurClass} inline-block`}
+      className={`${className} ${gradientClass} ${scaleClass} ${blurClass} inline-block whitespace-nowrap`}
       initial={{ opacity: 0 }}
       animate={{ opacity: 1 }}
       transition={{ duration: 0.5 }}
+      style={{ minHeight: '1em' }} // 최소 높이 고정
     >
-      {displayText}
+      <span className="inline-block" style={{ minWidth: '0.1em' }}>
+        {displayText || '\u00A0'}
+      </span>
       <motion.span
         animate={{ opacity: [1, 0] }}
         transition={{ duration: 0.8, repeat: Infinity, repeatType: 'reverse' }}
-        className="inline-block w-0.5 h-6 bg-current ml-1 translate-y-1"
+        className="inline-block w-0.5 bg-current ml-1"
+        style={{ 
+          height: '1em',
+          verticalAlign: 'baseline'
+        }}
       />
     </motion.span>
   );
