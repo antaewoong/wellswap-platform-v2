@@ -6,9 +6,12 @@
     "dev": "next dev",
     "build": "NODE_ENV=production next build",
     "start": "next start",
-    "lint": "next lint"
+    "lint": "next lint",
+    "compile": "hardhat compile",
+    "deploy:amoy": "hardhat run scripts/deploy.js --network amoy"
   },
   "dependencies": {
+    "@metamask/detect-provider": "^2.0.0",
     "@project-serum/anchor": "^0.26.0",
     "@solana/spl-token": "^0.4.13",
     "@solana/web3.js": "^1.98.4",
@@ -21,7 +24,8 @@
     "@types/uuid": "^10.0.0",
     "autoprefixer": "^10.4.21",
     "axios": "^1.7.9",
-    "ethers": "^5.8.0",
+    "dotenv": "^17.2.1",
+    "ethers": "^6.15.0",
     "framer-motion": "^12.23.12",
     "jiti": "^1.21.0",
     "lucide-react": "^0.539.0",
@@ -35,5 +39,11 @@
     "tesseract.js": "^6.0.1",
     "typescript": "^5.9.2",
     "uuid": "^11.1.0"
-  }
+  },
+  "devDependencies": {
+    "@nomicfoundation/hardhat-ethers": "^4.0.0",
+    "@openzeppelin/contracts": "^5.4.0",
+    "hardhat": "^3.0.3"
+  },
+  "type": "module"
 }

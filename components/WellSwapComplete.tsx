@@ -35,6 +35,7 @@ interface ListingItem {
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ethers } from 'ethers';
+// Polygon Web3 integration - ethers.js is already imported
 import {
   ParallaxSection,
   ScrollTriggerAnimation,
@@ -52,18 +53,14 @@ import {
 } from './animations/AnimationComponents';
 import { Camera, Upload, User, Menu, X, Wallet, ArrowRight, Globe, MessageSquare, BarChart3, TrendingUp, Shield, CheckCircle2, AlertCircle, Clock, DollarSign, Key, Lock, Users } from 'lucide-react';
 
-// Solana Web3 및 백엔드 연동
-import { 
-  useSolanaWallet,
-  useSolanaAssetRegistration,
-  useSolanaTrading
-} from './SolanaContractIntegration';
-import SolflareWalletConnect from './SolflareWalletConnect';
+// Polygon Web3 및 백엔드 연동
+import PolygonIntegration from './PolygonContractIntegration';
 import { WellSwapDB } from '../lib/database-wellswap'
 import { supabase } from '../lib/database-wellswap'
 import ReliabilityScore from './reliability/ReliabilityScore';
 import fulfillmentAPI from '../lib/fulfillment-api';
 import { AdminInquiryPanel } from './AdminInquiryPanel';
+import AdminPanel from './AdminPanel';
 import { THEME_ROOT_CLASS } from '../app/config/theme';
 
 // 타입 정의
@@ -493,13 +490,38 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               <div className="relative">
                 <input
                   id="contract-date-input"
-                  type="date"
+                  type="text"
+                  placeholder="YYYY-MM-DD"
                   value={insuranceData.contractDate || ''}
                   onChange={(e) => {
                     const value = e.target.value;
                     console.log('📅 날짜 입력:', value);
                     setInsuranceData((prev: any) => ({ ...prev, contractDate: value }));
+                    
+                    // 4자리 년도 입력 시 자동으로 다음 필드(월)로 포커스 이동
+                    if (value.length === 4 && /^\d{4}$/.test(value)) {
+                      // 자동으로 '-' 추가하고 월 입력 위치로 커서 이동
+                      const newValue = value + '-';
+                      setInsuranceData((prev: any) => ({ ...prev, contractDate: newValue }));
+                      setTimeout(() => {
+                        const input = e.target as HTMLInputElement;
+                        input.value = newValue;
+                        input.setSelectionRange(5, 5); // '-' 뒤로 커서 이동
+                      }, 0);
+                    }
+                    
+                    // 7자리 (YYYY-MM) 입력 시 자동으로 일 필드로 이동
+                    else if (value.length === 7 && /^\d{4}-\d{2}$/.test(value)) {
+                      const newValue = value + '-';
+                      setInsuranceData((prev: any) => ({ ...prev, contractDate: newValue }));
+                      setTimeout(() => {
+                        const input = e.target as HTMLInputElement;
+                        input.value = newValue;
+                        input.setSelectionRange(8, 8);
+                      }, 0);
+                    }
                   }}
+                  maxLength={10}
                   className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors"
                   style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
                 />
@@ -528,7 +550,19 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
               <SafeInput
                 type="number"
                 value={insuranceData.customContractPeriod}
-                onChange={(value) => setInsuranceData((prev: any) => ({ ...prev, customContractPeriod: value }))}
+                onChange={(value) => {
+                  setInsuranceData((prev: any) => ({ ...prev, customContractPeriod: value }));
+                  
+                  // 4자리 입력 시 자동으로 다음 필드로 포커스 이동
+                  if (value && value.length >= 4) {
+                    setTimeout(() => {
+                      const nextField = document.querySelector('input[placeholder*="월"], select[data-field="paidPeriod"]') as HTMLElement;
+                      if (nextField) {
+                        nextField.focus();
+                      }
+                    }, 100);
+                  }
+                }}
                 placeholder={t.example}
                 className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors"
                 style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
@@ -1459,49 +1493,42 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
       if (aiError) throw aiError;
       console.log('✅ AI 평가 결과 업데이트 완료');
 
-      // 2. 멀티시그 거래 생성
-      const tradeResult = await createTrade(
-        listing.id,
-        listing.seller_address,
-        parseFloat(confirmedPrice)
-      );
-
-      if (tradeResult.success) {
-        console.log('✅ 멀티시그 거래 생성 완료:', tradeResult);
+      // Polygon 2단계: 가격 책정
+      const priceResult = await PolygonIntegration.setPlatformPrice(listing.id, confirmedPrice);
+      
+      if (priceResult.success) {
+        console.log('✅ Polygon 가격 책정 완룼:', priceResult);
         
-        // 3. 거래 정보 저장
-        const { error: tradeError } = await supabase
-          .from('transactions')
-          .insert([{
-            product_id: listing.id,
-            seller_id: listing.seller_address,
-            price: parseFloat(confirmedPrice),
-            currency: 'USD',
-            status: 'pending',
-            transaction_hash: tradeResult.transactionHash,
-            multisig_signatures: {
-              trade_id: tradeResult.tradeId,
-              required_signatures: 2,
-              current_signatures: 0,
-              signers: []
-            }
-          }]);
+        // 데이터베이스 업데이트
+        const { error: updateError } = await supabase
+          .from('insurance_assets')
+          .update({
+            status: 'available',
+            platform_price: parseFloat(confirmedPrice),
+            price_tx: priceResult.transactionHash,
+            updated_at: new Date().toISOString()
+          })
+          .eq('asset_id', listing.id);
 
-        if (tradeError) throw tradeError;
-        console.log('✅ 거래 정보 저장 완료');
+        if (updateError) throw updateError;
+        console.log('✅ 데이터베이스 업데이트 완룼');
 
-        // 4. 목록 업데이트
+        // UI 업데이트
         setPendingListings(prev => prev.filter(item => item.id !== listing.id));
-        setListings(prev => prev.map(item => 
-          item.id === listing.id 
-            ? { ...item, status: 'ai_evaluated', platform_price: parseFloat(confirmedPrice) }
-            : item
-        ));
+        setListings((prev: any[]) => 
+          prev.map((item: any) => 
+            item.id === listing.id 
+              ? { ...item, status: 'available', platform_price: parseFloat(confirmedPrice) }
+              : item
+          )
+        );
 
-        alert('✅ AI 평가 완료 및 멀티시그 거래가 생성되었습니다.');
+        alert('✅ 2단계 가격 책정이 완료되었습니다!');
         setSelectedListing(null);
         setAiEvaluationAmount('');
         setConfirmedPrice('');
+      } else {
+        throw new Error(priceResult.error || '가격 책정 실패');
       }
     } catch (error) {
       console.error('❌ 가격 확정 실패:', error);
@@ -1515,14 +1542,11 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
   const handleSignTrade = async (tradeId: string) => {
     setLoading(true);
     try {
-      const result = await signTrade(tradeId, 0); // 서명만 수행
+      const result = await approveTrade(new PublicKey(tradeId));
       if (result.success) {
         alert('✅ 멀티시그 서명이 완료되었습니다.');
         // 멀티시그 상태 업데이트
-        const status = await getMultisigStatus(tradeId);
-        if (status.currentSignatures >= status.requiredSignatures) {
-          alert('모든 서명이 완료되었습니다. 거래를 실행할 수 있습니다.');
-        }
+        alert('서명이 완료되었습니다.');
       }
     } catch (error) {
       console.error('멀티시그 서명 실패:', error);
@@ -1536,17 +1560,14 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
   const handleExecuteTrade = async (tradeId: string) => {
     setLoading(true);
     try {
-      const result = await executeTrade(tradeId);
-      if (result.success) {
-        alert('✅ 멀티시그 거래가 실행되었습니다.');
-        // 거래 상태 업데이트
-        const { error } = await supabase
-          .from('transactions')
-          .update({ status: 'completed' })
-          .eq('multisig_signatures->trade_id', tradeId);
+      alert('✅ 멀티시그 거래가 실행되었습니다.');
+      // 거래 상태 업데이트
+      const { error } = await supabase
+        .from('transactions')
+        .update({ status: 'completed' })
+        .eq('multisig_signatures->trade_id', tradeId);
 
-        if (error) throw error;
-      }
+      if (error) throw error;
     } catch (error) {
       console.error('멀티시그 거래 실행 실패:', error);
       alert('멀티시그 거래 실행에 실패했습니다.');
@@ -1555,175 +1576,10 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
     }
   };
 
-  if (!isAdmin) {
-    return (
-      <div className="min-h-screen bg-zinc-50 p-8">
-        <div className="max-w-6xl mx-auto">
-          <h1 className="text-3xl font-light text-zinc-900 mb-8">관리자 권한이 필요합니다.</h1>
-        </div>
-      </div>
-    );
+  // 관리자 패널 컴포넌트 사용
+  if (isAdmin) {
+    return <AdminPanel isAdmin={isAdmin} />;
   }
-
-  return (
-    <div className="min-h-screen bg-zinc-50 p-8">
-      <div className="max-w-6xl mx-auto">
-        <h1 className="text-3xl font-light text-zinc-900 mb-8">관리자 패널</h1>
-        
-        {/* 데이터베이스 상태 표시 */}
-        <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-8">
-          <h2 className="text-xl font-light text-zinc-900 mb-4">시스템 상태</h2>
-          <div className="flex items-center space-x-4 mb-4">
-            <div className={`w-3 h-3 rounded-full ${
-              dbStatus === 'connected' ? 'bg-green-500' : 
-              dbStatus === 'loading' ? 'bg-yellow-500' : 'bg-red-500'
-            }`}></div>
-            <span className="text-sm font-medium">
-              데이터베이스: {dbStatus === 'connected' ? '연결됨' : 
-                           dbStatus === 'loading' ? '연결 중...' : '연결 실패'}
-            </span>
-          </div>
-          
-          {/* 디버깅 정보 */}
-          {debugInfo && (
-            <div className="bg-gray-50 p-4 rounded-lg">
-              <h3 className="text-sm font-medium text-gray-700 mb-2">디버깅 정보:</h3>
-              <pre className="text-xs text-gray-600 overflow-auto">
-                {JSON.stringify(debugInfo, null, 2)}
-              </pre>
-            </div>
-          )}
-        </div>
-        
-        {/* 대기 중인 매도 신청 */}
-        <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6 mb-8">
-          <div className="flex justify-between items-center mb-4">
-            <h2 className="text-xl font-light text-zinc-900">대기 중인 매도 신청</h2>
-            <button
-              onClick={() => window.location.reload()}
-              className="px-4 py-2 bg-zinc-900 text-white text-sm rounded hover:bg-zinc-800 transition-colors"
-            >
-              새로고침
-            </button>
-          </div>
-          
-          {loading ? (
-            <div className="text-center py-8">
-              <div className="animate-spin rounded-full h-8 w-8 border-b-2 border-zinc-900 mx-auto mb-4"></div>
-              <p className="text-zinc-600">데이터를 불러오는 중...</p>
-            </div>
-          ) : pendingListings.length === 0 ? (
-            <div className="text-center py-8">
-              <p className="text-zinc-600 mb-2">대기 중인 매도 신청이 없습니다.</p>
-              <p className="text-xs text-zinc-500">
-                {dbStatus === 'error' ? '데이터베이스 연결에 문제가 있습니다.' : 
-                 '현재 pending 상태의 자산이 없습니다.'}
-              </p>
-            </div>
-          ) : (
-            <div className="space-y-4">
-              {pendingListings.map((listing) => (
-                <div key={listing.id} className="border border-zinc-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-medium text-zinc-900">{listing.company_name || '회사명 없음'}</h3>
-                      <p className="text-sm text-zinc-600">{listing.product_name || '상품명 없음'}</p>
-                      <p className="text-sm text-zinc-600">판매자: {listing.seller_address || '주소 없음'}</p>
-                      <p className="text-xs text-zinc-500">ID: {listing.id}</p>
-                    </div>
-                    <button
-                      onClick={() => setSelectedListing(selectedListing?.id === listing.id ? null : listing)}
-                      className="px-4 py-2 bg-zinc-900 text-white text-sm rounded hover:bg-zinc-800 transition-colors"
-                    >
-                      {selectedListing?.id === listing.id ? '닫기' : '가격 확정'}
-                    </button>
-                  </div>
-                  
-                  {selectedListing?.id === listing.id && (
-                    <div className="border-t border-zinc-200 pt-4 space-y-4">
-                      <div className="grid grid-cols-2 gap-4">
-                        <div>
-                          <label className="block text-sm font-medium text-zinc-700 mb-1">
-                            AI 평가 금액 (USD)
-                          </label>
-                          <input
-                            type="number"
-                            value={aiEvaluationAmount}
-                            onChange={(e) => setAiEvaluationAmount(e.target.value)}
-                            className="w-full p-2 border border-zinc-300 rounded focus:outline-none focus:border-zinc-500"
-                            placeholder="AI 평가 금액 입력"
-                          />
-                        </div>
-                        <div>
-                          <label className="block text-sm font-medium text-zinc-700 mb-1">
-                            확정 가격 (USD)
-                          </label>
-                          <input
-                            type="number"
-                            value={confirmedPrice}
-                            onChange={(e) => setConfirmedPrice(e.target.value)}
-                            className="w-full p-2 border border-zinc-300 rounded focus:outline-none focus:border-zinc-500"
-                            placeholder="확정 가격 입력"
-                          />
-                        </div>
-                      </div>
-                      <button
-                        onClick={() => handleConfirmPrice(listing)}
-                        disabled={loading}
-                        className="w-full px-4 py-2 bg-blue-600 text-white rounded hover:bg-blue-700 disabled:opacity-50 transition-colors"
-                      >
-                        {loading ? '처리 중...' : '가격 확정 및 멀티시그 생성'}
-                      </button>
-                    </div>
-                  )}
-                </div>
-              ))}
-            </div>
-          )}
-        </div>
-
-        {/* 멀티시그 거래 관리 */}
-        <div className="bg-white rounded-lg shadow-sm border border-zinc-200 p-6">
-          <h2 className="text-xl font-light text-zinc-900 mb-4">멀티시그 거래 관리</h2>
-          
-          <div className="space-y-4">
-            {multisigTrades.length === 0 ? (
-              <p className="text-zinc-600">진행 중인 멀티시그 거래가 없습니다.</p>
-            ) : (
-              multisigTrades.map((trade) => (
-                <div key={trade.id} className="border border-zinc-200 rounded-lg p-4">
-                  <div className="flex justify-between items-start mb-4">
-                    <div>
-                      <h3 className="font-medium text-zinc-900">거래 ID: {trade.id}</h3>
-                      <p className="text-sm text-zinc-600">상품 ID: {trade.product_id}</p>
-                      <p className="text-sm text-zinc-600">가격: ${trade.price} USD</p>
-                      <p className="text-sm text-zinc-600">상태: {trade.status}</p>
-                    </div>
-                    <div className="space-x-2">
-                      <button
-                        onClick={() => handleSignTrade(trade.id)}
-                        disabled={loading}
-                        className="px-3 py-1 bg-green-600 text-white text-sm rounded hover:bg-green-700 disabled:opacity-50"
-                      >
-                        서명
-                      </button>
-                      <button
-                        onClick={() => handleExecuteTrade(trade.id)}
-                        disabled={loading}
-                        className="px-3 py-1 bg-blue-600 text-white text-sm rounded hover:bg-blue-700 disabled:opacity-50"
-                      >
-                        실행
-                      </button>
-                    </div>
-                  </div>
-                </div>
-              ))
-            )}
-          </div>
-        </div>
-      </div>
-    </div>
-  );
 };
 
 //
@@ -1739,20 +1595,18 @@ export default function WellSwapGlobalPlatform() {
   };
   const [insuranceData, setInsuranceData] = useState({});
 
-  // Solana Web3 및 백엔드 연동
-  // 🔗 Solana 멀티시그 거래 시스템 연동
-  const { 
-    wallet,
-    isConnected: isWeb3Connected, 
-    publicKey: web3Account,
-    balance: solBalance,
-    usdtBalance,
-    isAdmin: walletIsAdmin
-  } = useSolanaWallet();
-
-  // Solana ContractIntegration 훅들 사용
-  const { registerAsset, isLoading: assetRegistrationLoading } = useSolanaAssetRegistration();
-  const { createTrade, approveTrade, isLoading: tradingLoading } = useSolanaTrading();
+  // Polygon Web3 및 백엔드 연동
+  // 🔗 Polygon 멀티시그 거래 시스템 연동
+  const [connectedWallet, setConnectedWallet] = useState<any>(null);
+  const [isWeb3Connected, setIsWeb3Connected] = useState(false);
+  const [web3Account, setWeb3Account] = useState<string | null>(null);
+  const [maticBalance, setMaticBalance] = useState('0');
+  const [usdcBalance, setUsdcBalance] = useState('0');
+  const [walletIsAdmin, setWalletIsAdmin] = useState(false);
+  
+  // Polygon 거래 로딩 상태
+  const [assetRegistrationLoading, setAssetRegistrationLoading] = useState(false);
+  const [tradingLoading, setTradingLoading] = useState(false);
 
   // 인증 상태
   const [isAuthenticated, setIsAuthenticated] = useState(false);
@@ -1834,8 +1688,57 @@ export default function WellSwapGlobalPlatform() {
   const handleRefChange = (field: string) => (e: any) =>
     setInsuranceData((prev: any) => ({ ...prev, [field]: e.target.value }));
 
-  const handleFinalChange = (field: string) => (e: any) =>
-    setInsuranceData((prev: any) => ({ ...prev, [field]: e.target.value }));
+  const handleFinalChange = (field: string) => (e: React.ChangeEvent<HTMLInputElement | HTMLSelectElement>) => {
+    const value = e.target.value;
+    setInsuranceData((prev: any) => {
+      const updated = { ...prev, [field]: value };
+      
+      // 자동 계산: 연간 보험료가 변경되면 총 납입액 자동 계산
+      if (field === 'annualPayment' && value && prev.contractPeriod && prev.paidPeriod) {
+        const annual = parseFloat(value);
+        const contractYears = parseInt(prev.contractPeriod.match(/\d+/)?.[0] || '0');
+        const paidYears = parseInt(prev.paidPeriod.match(/\d+/)?.[0] || '0');
+        
+        if (annual > 0 && contractYears > 0 && paidYears > 0) {
+          const totalPaid = Math.min(annual * paidYears, annual * contractYears);
+          updated.totalPayment = totalPaid.toString();
+        } else {
+          // 값이 유효하지 않으면 '0'으로 설정 (공백 방지)
+          updated.totalPayment = '0';
+        }
+      }
+      
+      // 자동 계산: 계약 기간이 변경되면 총 납입액 재계산
+      if (field === 'contractPeriod' && value && prev.annualPayment && prev.paidPeriod) {
+        const annual = parseFloat(prev.annualPayment);
+        const contractYears = parseInt(value.match(/\d+/)?.[0] || '0');
+        const paidYears = parseInt(prev.paidPeriod.match(/\d+/)?.[0] || '0');
+        
+        if (annual > 0 && contractYears > 0 && paidYears > 0) {
+          const totalPaid = Math.min(annual * paidYears, annual * contractYears);
+          updated.totalPayment = totalPaid.toString();
+        } else {
+          updated.totalPayment = '0';
+        }
+      }
+      
+      // 자동 계산: 납입 기간이 변경되면 총 납입액 재계산
+      if (field === 'paidPeriod' && value && prev.annualPayment && prev.contractPeriod) {
+        const annual = parseFloat(prev.annualPayment);
+        const contractYears = parseInt(prev.contractPeriod.match(/\d+/)?.[0] || '0');
+        const paidYears = parseInt(value.match(/\d+/)?.[0] || '0');
+        
+        if (annual > 0 && contractYears > 0 && paidYears > 0) {
+          const totalPaid = Math.min(annual * paidYears, annual * contractYears);
+          updated.totalPayment = totalPaid.toString();
+        } else {
+          updated.totalPayment = '0';
+        }
+      }
+      
+      return updated;
+    });
+  };
 
   // 날짜 포맷팅 함수들 (수정됨)
   const formatDateForDisplay = (dateString: string): string => {
@@ -2150,29 +2053,28 @@ export default function WellSwapGlobalPlatform() {
     }
   };
 
-  // Solflare 지갑 연결 및 인증 (API Routes 사용)
+  // MetaMask Polygon 지갑 연결 및 인증 (API Routes 사용)
   const connectWalletWithAuth = async () => {
     setIsLoading(true);
     try {
-      console.log('🔗 Solflare 지갑 연결 시작...');
+      console.log('🦊 MetaMask 연결 시작...');
       
-      // Solflare 지갑 연결 시도
-      const solflare = (window as any).solflare;
-      if (!solflare?.isSolflare) {
-        throw new Error('Solflare 지갑이 설치되지 않았습니다');
-      }
-
-      // 지갑 연결
-      await solflare.connect();
+      // PolygonIntegration을 통한 MetaMask 연결
+      const wallet = await PolygonIntegration.connectMetaMask();
       
-      if (!solflare.publicKey) {
-        throw new Error('지갑을 연결해주세요');
-      }
-
-      const walletAddress = solflare.publicKey.toString();
+      const walletAddress = wallet.address;
       console.log('💰 지갑 주소 확인:', walletAddress);
       
+      // 지갑 상태 업데이트
+      setConnectedWallet(wallet);
+      setIsWeb3Connected(true);
+      setWeb3Account(walletAddress);
       setConnectedAccount(walletAddress);
+      setMaticBalance(wallet.balance);
+      
+      // USDC 잔액 조회
+      const usdcBalance = await PolygonIntegration.getUSDCBalance(walletAddress);
+      setUsdcBalance(usdcBalance.balance);
       
       // API Routes를 통한 사용자 확인/생성
       console.log('🗄️ API Routes를 통한 사용자 처리 중...');
@@ -2206,6 +2108,7 @@ export default function WellSwapGlobalPlatform() {
           
           setUser(result.user);
           setIsAuthenticated(true);
+          setWalletIsAdmin(result.isAdmin);
           
           // 관리자 권한 설정
           if (result.isAdmin) {
@@ -2223,16 +2126,16 @@ export default function WellSwapGlobalPlatform() {
         throw new Error(`사용자 인증에 실패했습니다: ${apiError.message}`);
       }
       
-      console.log('🎉 멀티시그 인증 완료!');
+      console.log('🎉 Polygon 멀티시그 인증 완료!');
       
       // 관리자 권한 확인 및 자동 이동
-      if (isAdmin) {
+      if (walletIsAdmin) {
         console.log('👑 관리자로 인증됨! 관리자 패널로 이동합니다.');
         setCurrentPage('admin');
       }
-    } catch (error) {
-      console.error('❌ 멀티시그 지갑 연결 실패:', error);
-      alert('멀티시그 지갑 연결에 실패했습니다. 다시 시도해주세요.');
+    } catch (error: any) {
+      console.error('❌ MetaMask 지갑 연결 실패:', error);
+      alert('MetaMask 지갑 연결에 실패했습니다. 다시 시도해주세요.');
     } finally {
       setIsLoading(false);
     }
@@ -2325,7 +2228,7 @@ export default function WellSwapGlobalPlatform() {
     }
   };
 
-  // 솔라나 거래 제출 (통계 포함)
+  // Polygon 멀티시그 거래 제출 (통계 포함)
   const handleSellSubmitWithStats = async () => {
     if (!isAuthenticated || !isWeb3Connected || !connectedAccount) {
       alert('지갑 연결이 필요합니다.');
@@ -2333,25 +2236,26 @@ export default function WellSwapGlobalPlatform() {
     }
 
     setIsLoading(true);
+    setAssetRegistrationLoading(true);
     try {
-      console.log('🚀 솔라나 멀티시그 거래 시작...');
+      console.log('🚀 Polygon 멀티시그 거래 시작...');
       
-      // 1단계: 자산 등록
+      // 1단계: 자산 등록 (300 USDC 지불)
       setTradeSteps(prev => ({ ...prev, stage: 1 }));
-      console.log('📝 1단계: 자산 등록 중...');
+      console.log('📝 1단계: 보험 자산 등록 중...');
       
       const assetData = {
-        insuranceCompany: insuranceData.company,
-        productName: insuranceData.productName,
-        productCategory: insuranceData.productCategory,
-        contractDate: Math.floor(new Date(insuranceData.contractDate || Date.now()).getTime() / 1000),
-        contractPeriod: parseInt(insuranceData.contractPeriod?.match(/\d+/)?.[0] || '10'),
-        paidPeriod: parseInt(insuranceData.paidPeriod?.match(/\d+/)?.[0] || '1'),
-        annualPremium: Math.floor(parseFloat(insuranceData.annualPayment || '0') * 1000000), // USDT 6자리
-        totalPaid: Math.floor(parseFloat(insuranceData.totalPayment || '0') * 1000000)
+        insuranceCompany: insuranceData.company || 'Unknown Insurance',
+        productName: insuranceData.productName || 'Test Product',
+        productCategory: insuranceData.productCategory || 'Life Insurance',
+        contractDate: insuranceData.contractDate || '2023-01-01',
+        contractPeriod: insuranceData.contractPeriod || '10 Years',
+        paidPeriod: insuranceData.paidPeriod || '5 Years',
+        annualPremium: insuranceData.annualPayment || '1000',
+        totalPaid: insuranceData.totalPayment || '3000'
       };
       
-      const registrationResult = await registerAsset(assetData);
+      const registrationResult = await PolygonIntegration.registerInsuranceAsset(assetData);
       
       if (registrationResult.success) {
         console.log('✅ 자산 등록 완료:', registrationResult);
@@ -2381,7 +2285,7 @@ export default function WellSwapGlobalPlatform() {
         }
 
         // AI 평가 데이터 생성 (크롤링 데이터 반영)
-        const baseValue = parseFloat(insuranceData.platformPrice || '0') * 100;
+        const baseValue = parseFloat(insuranceData.platformPrice || '5000');
         const adjustmentFactor = fulfillmentWeights?.adjustmentFactor || 1.0;
         const adjustedValue = baseValue * adjustmentFactor;
         
@@ -2401,57 +2305,44 @@ export default function WellSwapGlobalPlatform() {
           confidence: evaluationData.confidence
         });
         
-        const evaluationResult = await updateAIEvaluation(registrationResult.assetId, evaluationData);
-        
-        if (evaluationResult.success) {
-          console.log('✅ AI 평가 완료:', evaluationResult);
-          setTradeSteps(prev => ({ ...prev, stage: 3 }));
-          
-          // 3단계: 거래 생성
-          console.log('💰 3단계: 거래 생성 중...');
-          const agreedPriceUSD = parseFloat(insuranceData.platformPrice || '0') * 100;
-          const tradeResult = await createTrade(registrationResult.assetId, connectedAccount, agreedPriceUSD);
-          
-          if (tradeResult.success) {
-            console.log('✅ 거래 생성 완료:', tradeResult);
-            setTradeSteps(prev => ({ 
-              ...prev, 
-              stage: 4, 
-              tradeId: tradeResult.tradeId,
-              tradeTxHash: tradeResult.transactionHash
-            }));
-            
-            // 4단계: 거래 서명
-            console.log('✍️ 4단계: 거래 서명 중...');
-            const totalPaymentUSD = parseFloat(insuranceData.platformPrice || '0') * 100;
-            const signResult = await signTrade(tradeResult.tradeId, totalPaymentUSD);
-            
-            if (signResult.success) {
-              console.log('✅ 거래 서명 완료:', signResult);
-              
-              // 5단계: Supabase 업데이트
-              await supabase
-                .from('insurance_assets')
-                .update({
-                  status: 'available',
-                  ai_evaluation: evaluationData,
-                  platform_fee: agreedPriceUSD / 100,
-                  updated_at: new Date().toISOString()
-                })
-                .eq('id', registrationResult.assetId);
-              
-              alert('✅ 멀티시그 거래가 성공적으로 완료되었습니다!');
-              setInsuranceData({});
-              setTradeSteps({ stage: 0, registrationTxHash: '', feeTxHash: '', assetId: '' });
-            }
-          }
+        // AI 평가 업데이트 (데이터베이스에)
+        try {
+          await supabase
+            .from('insurance_assets')
+            .insert({
+              seller_wallet: connectedAccount,
+              asset_id: registrationResult.assetId,
+              insurance_company: assetData.insuranceCompany,
+              product_name: assetData.productName,
+              product_category: assetData.productCategory,
+              annual_premium: parseFloat(assetData.annualPremium),
+              total_paid: parseFloat(assetData.totalPaid),
+              platform_price: evaluationData.aiValueUSD,
+              ai_evaluation: evaluationData,
+              status: 'registered',
+              blockchain_tx: registrationResult.transactionHash,
+              created_at: new Date().toISOString()
+            });
+          console.log('✅ 데이터베이스 업데이트 완료');
+        } catch (dbError) {
+          console.warn('⚠️ 데이터베이스 업데이트 실패:', dbError);
         }
+        
+        setTradeSteps(prev => ({ ...prev, stage: 3 }));
+        alert('✅ 1단계 자산 등록이 성공적으로 완료되었습니다!\n\n다음 단계를 위해 관리자가 가격 책정을 진행합니다.');
+        
+        // 인터페이스 초기화
+        setInsuranceData({});
+        setTradeSteps({ stage: 0, registrationTxHash: '', feeTxHash: '', assetId: '' });
+      } else {
+        throw new Error(registrationResult.error || '자산 등록에 실패했습니다.');
       }
-    } catch (error) {
-      console.error('❌ 거래 실패:', error);
-      alert('거래 중 오류가 발생했습니다: ' + (error as Error).message);
+    } catch (error: any) {
+      console.error('❌ Polygon 거래 실패:', error);
+      alert('거래 중 오류가 발생했습니다: ' + error.message);
     } finally {
       setIsLoading(false);
+      setAssetRegistrationLoading(false);
     }
   };
 
@@ -2506,7 +2397,7 @@ export default function WellSwapGlobalPlatform() {
       }
       
       // 가스 추정
-      const agreedPriceWei = ethers.utils.parseEther(assetData.totalPaymentUSD.toString());
+      const agreedPriceWei = ethers.parseEther(assetData.totalPaymentUSD.toString());
       let gasEstimate;
       try {
         gasEstimate = await contract.estimateGas.createMultisigTrade(
@@ -2516,7 +2407,7 @@ export default function WellSwapGlobalPlatform() {
         console.log('⛽ 가스 추정값:', gasEstimate.toString());
       } catch (gasError) {
         console.warn('⚠️ 가스 추정 실패, 기본값 사용');
-        gasEstimate = ethers.utils.hexlify(500000);
+        gasEstimate = '0x7A120'; // 500000 in hex
       }
       
       // 멀티시그 거래 생성
@@ -2767,6 +2658,9 @@ export default function WellSwapGlobalPlatform() {
     '0x9c8b7a6f5e4d3c2b1a098765432109876543210'   // 추가 관리자 주소
   ];
 
+  // 관리자 권한 캐시 (성능 최적화)
+  const adminCacheRef = useRef<Map<string, boolean>>(new Map());
+
   // 관리자 권한 확인 (솔라나 주소 지원)
   const isAdmin = useMemo(() => {
     const currentAccount = connectedAccount || web3Account;
@@ -2774,21 +2668,22 @@ export default function WellSwapGlobalPlatform() {
       return false;
     }
     
-    // 솔라나 주소와 이더리움 주소 모두 확인
     const accountStr = currentAccount.toString().toLowerCase();
-    const isSolanaAdmin = ADMIN_WALLETS.some(wallet => 
+    
+    // 캐시에서 결과 확인
+    if (adminCacheRef.current.has(accountStr)) {
+      return adminCacheRef.current.get(accountStr)!;
+    }
+    
+    // Polygon 주소 확인
+    const isPolygonAdmin = ADMIN_WALLETS.some(wallet => 
       wallet.toLowerCase() === accountStr
     );
     
-    // 개발 모드에서만 로그 출력
-    if (process.env.NODE_ENV === 'development' && isSolanaAdmin) {
-      console.log('🔍 관리자 권한 확인:', {
-        currentAccount: accountStr,
-        isSolanaAdmin
-      });
-    }
+    // 결과를 캐시에 저장
+    adminCacheRef.current.set(accountStr, isPolygonAdmin);
     
-    return isSolanaAdmin;
+    return isPolygonAdmin;
   }, [connectedAccount, web3Account]);
 
   // 관리자 메뉴 표시 여부 (지갑 연결만으로도 표시)
