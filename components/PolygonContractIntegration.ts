@@ -2,18 +2,18 @@
 import { ethers } from 'ethers';
 import detectEthereumProvider from '@metamask/detect-provider';
 
-// Polygon Amoy 설정 (다중 RPC fallback)
+// Polygon 메인넷 설정 (다중 RPC fallback)
 const POLYGON_CONFIG = {
-  CHAIN_ID: 80002,
-  CHAIN_NAME: 'Polygon Amoy Testnet',
+  CHAIN_ID: 137,
+  CHAIN_NAME: 'Polygon Mainnet',
   RPC_URLS: [
-    'https://rpc-amoy.polygon.technology',
-    'https://polygon-amoy-bor-rpc.publicnode.com',
-    'https://polygon-amoy.drpc.org',
-    'https://amoy.gateway.tenderly.co',
-    'https://rpc.ankr.com/polygon_amoy'
+    'https://polygon-rpc.com',
+    'https://rpc-mainnet.matic.network',
+    'https://polygon-mainnet.public.blastapi.io',
+    'https://rpc.ankr.com/polygon',
+    'https://polygon.llamarpc.com'
   ],
-  BLOCK_EXPLORER: 'https://amoy.polygonscan.com/',
+  BLOCK_EXPLORER: 'https://polygonscan.com/',
   NATIVE_TOKEN: {
     name: 'MATIC',
     symbol: 'MATIC',
@@ -21,11 +21,11 @@ const POLYGON_CONFIG = {
   }
 };
 
-// Amoy 테스트넷 주소들
+// Polygon 메인넷 주소들
 const CONTRACT_ADDRESSES = {
-  WELLSWAP_CONTRACT: '0x8CaD4c08dA04d2251185897923DDd923f0F4Ec86', // 가변 수수료 버전
-  USDC: '0x41E94Eb019C0762f9Bfcf9Fb1E58725BfB0e7582', // Amoy USDC (Circle 공식)
-  USDT: '0x0000000000000000000000000000000000000000'  // Amoy USDT (필요시 추가)
+  WELLSWAP_CONTRACT: '0x78198e6862bAae2D448Ef80f94f09184b3188973', // 메인넷 배포 주소
+  USDC: '0x2791Bca1f2de4661ED88A30C99A7a9449Aa84174', // Polygon USDC (Circle 공식)
+  USDT: '0xc2132D05D31c914a87C6611C10748AEb04B58e8F'  // Polygon USDT (필요시)
 };
 
 // ERC20 ABI (USDC/USDT용)
@@ -282,8 +282,8 @@ export async function registerInsuranceAsset(assetData: {
       
       const approveTx = await usdcContract.approve(CONTRACT_ADDRESSES.WELLSWAP_CONTRACT, registrationFee, {
         gasLimit: gasLimit,
-        maxFeePerGas: ethers.parseUnits('50', 'gwei'), // 명시적 가스 가격
-        maxPriorityFeePerGas: ethers.parseUnits('30', 'gwei')
+        maxFeePerGas: ethers.parseUnits('80', 'gwei'), // 메인넷 적정 가스
+        maxPriorityFeePerGas: ethers.parseUnits('40', 'gwei')
       });
       
       console.log('⏳ USDC approve 대기 중...', approveTx.hash);
