@@ -98,6 +98,7 @@ import {
 // Polygon Web3 및 백엔드 연동
 import PolygonIntegration from './PolygonContractIntegration';
 import { getDefaultInsuranceIcon } from './utils/insurance-helpers';
+import * as InsuranceAPI from '../lib/insurance-api';
 import { WellSwapDB } from '../lib/database-wellswap'
 import { getSupabase } from '../lib/database-wellswap'
 import ReliabilityScore from './reliability/ReliabilityScore';
@@ -2943,7 +2944,18 @@ export default function WellSwapGlobalPlatform() {
         totalPaid: insuranceData.totalPayment || '3000'
       };
       
-      const registrationResult = await PolygonIntegration.registerInsuranceAsset(assetData);
+      // 실제 API 호출로 교체
+      const registrationResult = await InsuranceAPI.registerInsuranceAsset({
+        productName: assetData.productName,
+        insuranceCompany: assetData.insuranceCompany,
+        category: assetData.productCategory,
+        annualPayment: parseFloat(assetData.annualPremium),
+        totalPayment: parseFloat(assetData.totalPaid),
+        contractDate: assetData.contractDate,
+        contractPeriod: assetData.contractPeriod,
+        paidPeriod: assetData.paidPeriod,
+        status: 'pending'
+      }, connectedAccount);
       
       if (registrationResult.success) {
         console.log('✅ 자산 등록 완료:', registrationResult);
@@ -3064,18 +3076,29 @@ export default function WellSwapGlobalPlatform() {
 
     setIsLoading(true);
     try {
-      console.log('🛒 멀티시그 구매 시작...');
+      console.log('🛒 실제 보험 자산 구매 시작...');
       
-      // 기존 구매 로직 유지
-      const assetData = {
-        companyName: listing?.company || 'Buyer Registration',
-        productName: listing?.productName || 'Insurance Purchase',
-        category: listing?.category || 'Purchase',
-        surrenderValueUSD: listing?.surrenderValue || 0,
-        contractPeriod: listing?.contractPeriod || '0',
-        annualPaymentUSD: listing?.annualPayment || 0,
-        totalPaymentUSD: listing?.platformPrice || 0
-      };
+      if (!listing?.id) {
+        throw new Error('구매할 상품 정보가 없습니다.');
+      }
+      
+      // 실제 API 호출로 구매 처리
+      const purchaseResult = await InsuranceAPI.purchaseInsuranceAsset(
+        listing.id,
+        currentWalletAddress
+      );
+      
+      if (purchaseResult.success) {
+        console.log('✅ 구매 완료:', purchaseResult);
+        
+        alert(`🎉 구매 완료!\n트랜잭션 ID: ${purchaseResult.transactionId}\n블록체인 해시: ${purchaseResult.transactionHash}`);
+        
+        // 성공 후 페이지 새로고침 또는 상태 업데이트
+        window.location.reload();
+        return;
+      } else {
+        throw new Error(purchaseResult.error || '구매 처리 실패');
+      }
 
       console.log('📝 멀티시그 거래 생성 데이터:', assetData);
       
@@ -3221,8 +3244,8 @@ export default function WellSwapGlobalPlatform() {
     }
   };
 
-  // 홍콩 보험 리스팅 데이터 (구매 페이지용)
-  const listingData = [
+  // 실제 보험 리스팅 데이터 로드
+  const [listingData, setListingData] = useState<any[]>([]);
     {
       id: 1,
       company: 'AIA Group Limited',

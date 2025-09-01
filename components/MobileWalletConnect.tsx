@@ -109,9 +109,21 @@ const MobileWalletConnect: React.FC<MobileWalletConnectProps> = ({
     const ethereum = (window as any).ethereum;
     
     if (!ethereum) {
-      // Try to open MetaMask app
-      window.location.href = 'metamask://dapp/wellswap.app';
-      throw new Error('MetaMask app not detected. Opening MetaMask app...');
+      // iPhone에서는 Deep Link를 더 안전하게 처리
+      if (isMobile && /iPhone|iPad|iPod/i.test(navigator.userAgent)) {
+        // iOS Safari에서는 Universal Link 사용
+        const currentUrl = window.location.href;
+        const metamaskUrl = `https://metamask.app.link/dapp/${window.location.host}`;
+        
+        // 새 탭으로 MetaMask 앱 열기
+        window.open(metamaskUrl, '_blank');
+        
+        throw new Error('MetaMask 앱으로 이동합니다. 연결 후 다시 돌아와주세요.');
+      } else {
+        // Android나 다른 플랫폼
+        window.location.href = 'metamask://dapp/wellswap.app';
+        throw new Error('MetaMask app not detected. Opening MetaMask app...');
+      }
     }
 
     // Switch to Polygon network if needed

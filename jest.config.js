@@ -2,11 +2,13 @@
 const config = {
   testEnvironment: 'jsdom',
   setupFilesAfterEnv: ['<rootDir>/jest.setup.js'],
-  moduleNameMapping: {
+  moduleNameMapper: {
     '^@/(.*)$': '<rootDir>/$1',
     '^@/components/(.*)$': '<rootDir>/components/$1',
     '^@/lib/(.*)$': '<rootDir>/lib/$1',
     '^@/types/(.*)$': '<rootDir>/types/$1',
+    '\\.(css|less|sass|scss|styl)$': 'identity-obj-proxy',
+    '\\.(gif|ttf|eot|svg|png)$': 'jest-transform-stub',
   },
   testPathIgnorePatterns: [
     '<rootDir>/.next/',
@@ -29,12 +31,11 @@ const config = {
       statements: 70,
     },
   },
-  preset: 'ts-jest/presets/default-esm',
-  extensionsToTreatAsEsm: ['.ts', '.tsx'],
-  globals: {
-    'ts-jest': {
-      useESM: true,
-    },
+  transform: {
+    '^.+\\.(js|jsx|ts|tsx)$': ['babel-jest', { presets: ['next/babel'] }],
+  },
+  testEnvironmentOptions: {
+    customExportConditions: ['node', 'node-addons'],
   },
 };
 
