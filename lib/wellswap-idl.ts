@@ -513,4 +513,4 @@ export const IDL = {
     "version": "0.1.0"
   }
 };
-export type WellswapInsurance = typeof IDL;
+// WellswapInsurance type is already defined above

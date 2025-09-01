@@ -66,12 +66,12 @@ const AdminPanelOptimized = memo<AdminPanelOptimizedProps>(({ isAdmin, user }) =
         const feeResult = await getRegistrationFee();
         const platformFeeResult = await getPlatformFeePercent();
         
-        if (feeResult.success) {
+        if (feeResult.success && feeResult.fee) {
           setCurrentRegFee(feeResult.fee);
           setNewRegFee(feeResult.fee);
         }
         
-        if (platformFeeResult.success) {
+        if (platformFeeResult.success && platformFeeResult.feePercent !== undefined) {
           setCurrentPlatformFee(platformFeeResult.feePercent.toString());
           setNewPlatformFee(platformFeeResult.feePercent.toString());
         }

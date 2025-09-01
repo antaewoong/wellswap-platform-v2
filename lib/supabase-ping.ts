@@ -1,5 +1,5 @@
 // lib/supabase-ping.ts - Supabase 자동 핑 시스템
-import { supabase } from './database-wellswap';
+import { getSupabase } from './database-wellswap';
 
 class SupabasePingService {
   private pingInterval: NodeJS.Timeout | null = null;

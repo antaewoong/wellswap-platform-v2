@@ -51,3 +51,137 @@ body {
   color: var(--foreground);
   font-family: Arial, Helvetica, sans-serif;
 }
+
+/* 🚀 Mobile PWA Optimizations */
+
+/* iOS PWA safe areas */
+@supports(padding: env(safe-area-inset-top)) {
+  .safe-area-inset-top {
+    padding-top: env(safe-area-inset-top);
+  }
+  
+  .safe-area-inset-bottom {
+    padding-bottom: env(safe-area-inset-bottom);
+  }
+  
+  .safe-area-inset-left {
+    padding-left: env(safe-area-inset-left);
+  }
+  
+  .safe-area-inset-right {
+    padding-right: env(safe-area-inset-right);
+  }
+}
+
+/* Remove iOS touch highlights */
+* {
+  -webkit-tap-highlight-color: transparent;
+  -webkit-touch-callout: none;
+  -webkit-user-select: none;
+  -moz-user-select: none;
+  -ms-user-select: none;
+  user-select: none;
+}
+
+/* Allow text selection for inputs and content areas */
+input, textarea, [contenteditable] {
+  -webkit-user-select: text;
+  -moz-user-select: text;
+  -ms-user-select: text;
+  user-select: text;
+}
+
+/* Mobile-first touch optimizations */
+button, [role="button"] {
+  min-height: 44px; /* Apple's minimum touch target */
+  min-width: 44px;
+  cursor: pointer;
+}
+
+/* Improve scrolling performance */
+* {
+  -webkit-overflow-scrolling: touch;
+  scroll-behavior: smooth;
+}
+
+/* Hide scrollbars but keep functionality */
+.hide-scrollbar {
+  -ms-overflow-style: none;
+  scrollbar-width: none;
+}
+
+.hide-scrollbar::-webkit-scrollbar {
+  display: none;
+}
+
+/* Mobile glass morphism optimizations */
+@media (max-width: 768px) {
+  .backdrop-blur-md {
+    backdrop-filter: blur(8px);
+    -webkit-backdrop-filter: blur(8px);
+  }
+  
+  .backdrop-blur-lg {
+    backdrop-filter: blur(12px);
+    -webkit-backdrop-filter: blur(12px);
+  }
+}
+
+/* Mobile font size optimizations */
+@media (max-width: 640px) {
+  html {
+    font-size: 16px; /* Prevent iOS zoom */
+  }
+  
+  input, select, textarea {
+    font-size: 16px; /* Prevent iOS zoom on focus */
+  }
+}
+
+/* Mobile animation performance */
+@media (prefers-reduced-motion: no-preference) {
+  .mobile-smooth-transform {
+    transform: translateZ(0);
+    backface-visibility: hidden;
+    perspective: 1000;
+  }
+}
+
+/* PWA fullscreen support */
+@media (display-mode: standalone) {
+  body {
+    background-attachment: fixed;
+  }
+  
+  .pwa-only {
+    display: block;
+  }
+  
+  .browser-only {
+    display: none;
+  }
+}
+
+/* Default state for PWA elements */
+.pwa-only {
+  display: none;
+}
+
+.browser-only {
+  display: block;
+}
+
+/* Mobile-optimized glassmorphism shadows */
+@media (max-width: 768px) {
+  .mobile-glass-shadow {
+    box-shadow: 
+      0 4px 16px rgba(0, 0, 0, 0.1),
+      0 1px 4px rgba(0, 0, 0, 0.05);
+  }
+  
+  .mobile-glass-shadow-lg {
+    box-shadow: 
+      0 8px 32px rgba(0, 0, 0, 0.15),
+      0 2px 8px rgba(0, 0, 0, 0.1);
+  }
+}

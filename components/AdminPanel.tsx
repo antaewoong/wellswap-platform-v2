@@ -78,13 +78,13 @@ const AdminPanel: React.FC<AdminPanelProps> = ({ isAdmin }) => {
           .from('transactions')
           .insert([{
             product_id: listing.id,
-            seller_id: listing.seller_address,
+            seller_id: listing.seller_address || '',
             price: parseFloat(confirmedPrice),
             currency: 'USD',
             status: 'pending',
-            transaction_hash: tradeResult.transactionHash,
+            transaction_hash: tradeResult.transactionHash || '',
             multisig_signatures: {
-              trade_id: tradeResult.tradeId,
+              trade_id: tradeResult.transactionHash || '',
               required_signatures: 2,
               current_signatures: 0,
               signers: []

@@ -1,5 +1,5 @@
 import { NextRequest, NextResponse } from 'next/server';
-import { supabase } from '../../../lib/database-wellswap';
+import { getSupabase } from '../../../lib/database-wellswap';
 
 export async function POST(request: NextRequest) {
   try {
@@ -15,19 +15,26 @@ export async function POST(request: NextRequest) {
     }
 
     // 이메일 로그 저장
-    const { data: emailLog, error: logError } = await supabase
-      .from('email_logs')
-      .insert([{
-        to_email: to,
-        subject: subject,
-        body: content,
-        status: 'pending'
-      }])
-      .select()
-      .single();
-
-    if (logError) {
-      console.error('이메일 로그 저장 실패:', logError);
+    const supabase = getSupabase();
+    let emailLog = null;
+    
+    if (supabase) {
+      const { data, error: logError } = await supabase
+        .from('email_logs')
+        .insert([{
+          to_email: to,
+          subject: subject,
+          body: content,
+          status: 'pending'
+        }])
+        .select()
+        .single();
+      
+      emailLog = data;
+      
+      if (logError) {
+        console.error('이메일 로그 저장 실패:', logError);
+      }
     }
 
     // Resend API 호출 (실제 구현 시)
@@ -48,7 +55,7 @@ export async function POST(request: NextRequest) {
     // 임시로 성공 응답 (실제 구현 시 주석 해제)
     const success = true;
 
-    if (success && emailLog) {
+    if (success && emailLog && supabase) {
       // 로그 상태 업데이트
       await supabase
         .from('email_logs')

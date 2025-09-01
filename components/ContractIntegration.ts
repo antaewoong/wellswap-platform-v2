@@ -20,12 +20,12 @@ async function ensureWritableContract() {
 
   // 체인 보장: BSC Testnet(0x61 / 97)
   let { chainId } = await provider.getNetwork();
-  if (chainId !== 97) {
+  if (Number(chainId) !== 97) {
     await provider.send('wallet_switchEthereumChain', [{ chainId: '0x61' }]);
     ({ chainId } = await provider.getNetwork());
   }
 
-  const signer = provider.getSigner();
+  const signer = await provider.getSigner();
 
   // 주소/ABI는 기존 단일 소스만 사용
   const address =
@@ -195,7 +195,7 @@ interface TradeData {
 }
 
 interface Web3State {
-  provider: ethers.providers.Web3Provider | null;
+  provider: ethers.BrowserProvider | null;
   signer: ethers.Signer | null;
   contract: ethers.Contract | null;
   account: string | null;
@@ -276,7 +276,7 @@ interface ContractDataState {
 
 // Web3 훅
 export const useWeb3 = (): Web3State => {
-  const [provider, setProvider] = useState<ethers.providers.Web3Provider | null>(null);
+  const [provider, setProvider] = useState<ethers.BrowserProvider | null>(null);
   const [signer, setSigner] = useState<ethers.Signer | null>(null);
   const [contract, setContract] = useState<ethers.Contract | null>(null);
   const [account, setAccount] = useState<string | null>(null);
@@ -298,7 +298,7 @@ export const useWeb3 = (): Web3State => {
         throw new Error('계정을 선택해주세요');
       }
 
-      const provider = new ethers.providers.Web3Provider(eth);
+      const provider = new ethers.BrowserProvider(eth);
       
       // 체인 확인 및 스위치 (기존 로직 유지)
       const currentChainId = await eth.request({ method: 'eth_chainId' });
@@ -314,7 +314,7 @@ export const useWeb3 = (): Web3State => {
       }
 
       // 컨트랙트 검증 (기존 로직 유지)
-      if (!CONTRACT_CONFIG.CONTRACT_ADDRESS || !ethers.utils.isAddress(CONTRACT_CONFIG.CONTRACT_ADDRESS)) {
+      if (!CONTRACT_CONFIG.CONTRACT_ADDRESS || !ethers.isAddress(CONTRACT_CONFIG.CONTRACT_ADDRESS)) {
         throw new Error('컨트랙트 주소가 올바르지 않습니다');
       }
       
@@ -323,7 +323,7 @@ export const useWeb3 = (): Web3State => {
         throw new Error('현재 체인에 컨트랙트가 없습니다');
       }
 
-      const signer = provider.getSigner();
+      const signer = await provider.getSigner();
       const contract = new ethers.Contract(CONTRACT_CONFIG.CONTRACT_ADDRESS, CONTRACT_CONFIG.CONTRACT_ABI, signer);
 
       // 상태 업데이트 (기존 로직 유지)
@@ -355,7 +355,7 @@ export const useWeb3 = (): Web3State => {
     const [ip, fp=''] = priceStr.split('.');
     const decimals = fp.length;
     const intStr = (ip + fp).replace(/^0+(?=\d)/, '') || '0';
-    return { priceInt: ethers.BigNumber.from(intStr), decimals };
+    return { priceInt: BigInt(intStr), decimals };
   };
 
   const tryBinance = async () => {
@@ -366,14 +366,14 @@ export const useWeb3 = (): Web3State => {
     const priceStr = (json.price ?? json.lastPrice ?? '').toString();
     if (!priceStr) throw new Error('Binance response missing price');
     const { priceInt, decimals } = parsePriceToInt(priceStr);
-    if (priceInt.lte(0)) throw new Error('Binance invalid price');
+    if (priceInt <= 0n) throw new Error('Binance invalid price');
     return { priceInt, decimals };
   };
 
   const tryChainlink = async () => {
     const feedAddr = (process.env.NEXT_PUBLIC_CHAINLINK_BNB_USD_FEED || '').trim();
     if (!feedAddr) throw new Error('Missing NEXT_PUBLIC_CHAINLINK_BNB_USD_FEED');
-    const provider = new ethers.providers.Web3Provider((window as any).ethereum);
+    const provider = new ethers.BrowserProvider((window as any).ethereum);
     const AGGREGATOR_V3_ABI = [
       {"inputs":[],"name":"decimals","outputs":[{"internalType":"uint8","name":"","type":"uint8"}],"stateMutability":"view","type":"function"},
       {"inputs":[],"name":"latestRoundData","outputs":[
@@ -386,7 +386,7 @@ export const useWeb3 = (): Web3State => {
     ] as const;
     const feed = new ethers.Contract(feedAddr, AGGREGATOR_V3_ABI, provider);
     const [latest, decimals] = await Promise.all([feed.latestRoundData(), feed.decimals()]);
-    const priceInt = ethers.BigNumber.from(latest.answer.toString());
+    const priceInt = BigInt(latest.answer.toString());
     return { priceInt, decimals: Number(decimals) };
   };
 
@@ -402,12 +402,12 @@ export const useWeb3 = (): Web3State => {
 
   // USD → BNB → wei : wei = usdCents * 10^decimals * 1e18 / (priceInt * 100)
   const usdCents = Math.round(usdAmount * 100);
-  const numerator = ethers.BigNumber.from(usdCents)
-    .mul(ethers.BigNumber.from(10).pow(decimals))
-    .mul(ethers.BigNumber.from('1000000000000000000'));
-  const denominator = priceInt.mul(100);
-  const wei = numerator.div(denominator);
-  if (wei.lte(0)) throw new Error('Computed wei is zero');
+  const numerator = BigInt(usdCents) 
+    * (10n ** BigInt(decimals))
+    * (10n ** 18n);
+  const denominator = priceInt * 100n;
+  const wei = numerator / denominator;
+  if (wei <= 0n) throw new Error('Computed wei is zero');
   return wei.toString();
 };
 
@@ -436,7 +436,7 @@ export async function getWritableContract() {
   console.log('✅ MetaMask 감지됨');
   
   // 사용자 지갑 기반 프로바이더(서명용) - ethers v5 문법
-  const provider = new ethers.providers.Web3Provider(eth);
+  const provider = new ethers.BrowserProvider(eth);
   console.log('✅ Web3Provider 생성됨');
 
   // 체인 일치 보장
@@ -459,7 +459,7 @@ export async function getWritableContract() {
   }
 
   // 컨트랙트 주소 검증
-  if (!CONTRACT_CONFIG.CONTRACT_ADDRESS || !ethers.utils.isAddress(CONTRACT_CONFIG.CONTRACT_ADDRESS)) {
+  if (!CONTRACT_CONFIG.CONTRACT_ADDRESS || !ethers.isAddress(CONTRACT_CONFIG.CONTRACT_ADDRESS)) {
     console.error('❌ 컨트랙트 주소가 올바르지 않습니다:', CONTRACT_CONFIG.CONTRACT_ADDRESS);
     throw new Error('컨트랙트 주소가 올바르지 않습니다');
   }
@@ -479,7 +479,7 @@ export async function getWritableContract() {
   console.log('✅ 컨트랙트 배포 확인됨');
 
   // 서명자 생성
-  const signer = provider.getSigner();
+  const signer = await provider.getSigner();
   console.log('✅ Signer 생성됨');
   
   // 컨트랙트 인스턴스 생성
@@ -495,24 +495,25 @@ export async function registerAsset(assetId: number, agreedPriceWei: string) {
   const { provider, signer, contract, address, chainId } = await ensureWritableContract();
 
   // 타입 정리 (컨트랙트가 uint256 기대 시 안전)
-  const idBN   = ethers.BigNumber.from(assetId);
-  const valueBN= ethers.BigNumber.from(agreedPriceWei);
+  const idBN   = BigInt(assetId);
+  const valueBN= BigInt(agreedPriceWei);
 
   // 가스 추정 + 프리체크 (부족하면 팝업 전에 친절 안내)
-  let gasEstimate: ethers.BigNumber;
+  let gasEstimate: bigint;
   try {
-    gasEstimate = await contract.estimateGas.createMultisigTrade(idBN, valueBN);
+    // Use registerAsset method instead of createMultisigTrade
+    gasEstimate = await (contract as any).estimateGas.registerAsset?.(idBN, valueBN) ?? BigInt('500000');
   } catch {
-    gasEstimate = ethers.BigNumber.from('500000');
+    gasEstimate = BigInt('500000');
   }
   const feeData  = await provider.getFeeData();
-  const gasPrice = feeData.gasPrice ?? ethers.utils.parseUnits('1', 'gwei');
-  const gasLimit = gasEstimate.mul(120).div(100); // +20% 버퍼
-  const need     = valueBN.add(gasPrice.mul(gasLimit));
-  const bal      = await signer.getBalance();
-  if (bal.lt(need)) {
-    const fmt = (bn:any)=>Number(ethers.utils.formatEther(bn)).toFixed(6);
-    throw new Error(`잔액 부족: 필요 ${fmt(need)} tBNB (등록비 ${fmt(valueBN)} + 가스 ${fmt(gasPrice.mul(gasLimit))}), 보유 ${fmt(bal)} tBNB`);
+  const gasPrice = feeData.gasPrice ?? ethers.parseUnits('1', 'gwei');
+  const gasLimit = (gasEstimate * 120n) / 100n; // +20% 버퍼
+  const need     = valueBN + (gasPrice * gasLimit);
+  const bal      = await signer.provider?.getBalance(await signer.getAddress());
+  if (bal && bal < need) {
+    const fmt = (bn:any)=>Number(ethers.formatEther(bn)).toFixed(6);
+    throw new Error(`잔액 부족: 필요 ${fmt(need)} tBNB (등록비 ${fmt(valueBN)} + 가스 ${fmt(gasPrice * gasLimit)}), 보유 ${fmt(bal)} tBNB`);
   }
 
   // 실제 호출 (기존 로직 유지)

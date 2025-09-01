@@ -2,7 +2,7 @@ import React, { useState, useEffect } from 'react';
 import { useWallet } from '@solana/wallet-adapter-react';
 import { WalletMultiButton } from '@solana/wallet-adapter-react-ui';
 import { Connection, PublicKey, LAMPORTS_PER_SOL } from '@solana/web3.js';
-import { Token, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount } from '@solana/spl-token';
 import SolanaClient from '../lib/solana-client';
 
 // 지갑 어댑터 CSS 임포트

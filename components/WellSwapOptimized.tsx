@@ -10,10 +10,10 @@ import {
   TypewriterText,
   GradientBackground
 } from "./animations/AnimationComponents";
-import { supabase } from '../lib/database-wellswap';
+import { getSupabase } from '../lib/database-wellswap';
 import { useWeb3 } from '../providers/web3';
 // ContractIntegration에서 필요한 함수들은 동적 import로 처리
-import { SafeInput } from './SafeInput';
+import SafeInput from './SafeInput';
 import { AdminInquiryPanel } from './AdminInquiryPanel';
 import HomePage from './pages/HomePage';
 import SellPage from './pages/SellPage';
@@ -452,7 +452,7 @@ export default function WellSwapOptimized() {
         console.log('⛽ 가스 추정값:', gasEstimate.toString());
       } catch (gasError) {
         console.warn('⚠️ 가스 추정 실패, 기본값 사용');
-        gasEstimate = ethers.utils.hexlify(500000);
+        gasEstimate = ethers.hexlify(500000);
       }
       
       console.log('🔗 컨트랙트 함수 호출 준비:', {

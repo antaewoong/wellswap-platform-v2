@@ -1,5 +1,5 @@
 import { Connection, PublicKey, Transaction, sendAndConfirmTransaction } from '@solana/web3.js';
-import { Token, TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID } from '@solana/spl-token';
+import { TOKEN_PROGRAM_ID, ASSOCIATED_TOKEN_PROGRAM_ID, createMint, getOrCreateAssociatedTokenAccount } from '@solana/spl-token';
 import { Program, AnchorProvider, web3, BN } from '@project-serum/anchor';
 import { IDL } from '../target/types/wellswap_insurance';
 

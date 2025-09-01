@@ -23,12 +23,23 @@ const getSupabaseConfig = () => {
   return { supabaseUrl, supabaseKey };
 };
 
-// Supabase 클라이언트 생성
+// Supabase 클라이언트 생성 (지연 초기화)
+let supabaseInstance: any = null;
+
 const createSupabaseClient = () => {
+  // 브라우저 환경에서만 실행
+  if (typeof window === 'undefined') {
+    return null;
+  }
+  
+  if (supabaseInstance) {
+    return supabaseInstance;
+  }
+
   try {
     const { supabaseUrl, supabaseKey } = getSupabaseConfig();
     
-    const client = createClient(supabaseUrl, supabaseKey, {
+    supabaseInstance = createClient(supabaseUrl, supabaseKey, {
       auth: {
         persistSession: true,
         autoRefreshToken: true,
@@ -50,19 +61,32 @@ const createSupabaseClient = () => {
     });
 
     console.log('✅ Supabase 클라이언트 생성 완료');
-    return client;
+    return supabaseInstance;
   } catch (error) {
     console.error('❌ Supabase 클라이언트 생성 실패:', error);
-    throw error;
+    return null;
   }
 };
 
-export const supabase = createSupabaseClient();
+export const getSupabase = () => {
+  return createSupabaseClient();
+};
+
+// Export supabase instance for direct use
+export const supabase = getSupabase();
 
 // Supabase 연결 테스트 함수
 export const testSupabaseConnection = async () => {
   try {
     console.log('🔍 Supabase 연결 테스트 시작...');
+    
+    const supabase = getSupabase();
+    if (!supabase) {
+      return {
+        success: false,
+        error: 'Supabase client not available in server environment'
+      };
+    }
     
     // 간단한 쿼리로 연결 확인
     const { data, error } = await supabase
@@ -120,6 +144,12 @@ const trackError = (error: any, context: string) => {
 // 웹소켓 연결 상태 확인
 export const checkWebSocketConnection = async () => {
   try {
+    const supabase = getSupabase();
+    if (!supabase) {
+      console.warn('⚠️ WebSocket 연결 확인 실패: Server environment');
+      return false;
+    }
+    
     // 간단한 쿼리로 연결 확인
     const { data, error } = await supabase
       .from('users')
@@ -149,6 +179,11 @@ export class WellSwapDB {
     total_trades?: number;
   }) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const { data, error } = await supabase
         .from('users')
         .insert([{
@@ -175,6 +210,11 @@ export class WellSwapDB {
   // 지갑 주소로 사용자 조회
   static async getUserByWallet(walletAddress: string) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const { data, error } = await supabase
         .from('users')
         .select('*')
@@ -209,6 +249,11 @@ export class WellSwapDB {
     status: string;
   }) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const { data, error } = await supabase
         .from('insurance_assets')
         .insert([{
@@ -233,6 +278,11 @@ export class WellSwapDB {
   // 보험 상태 업데이트
   static async updateInsuranceStatus(assetId: string, status: string) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const { data, error } = await supabase
         .from('insurance_assets')
         .update({ 
@@ -261,6 +311,11 @@ export class WellSwapDB {
     status: string;
   }) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const { data, error } = await supabase
         .from('transactions')
         .insert([{
@@ -292,6 +347,11 @@ export class WellSwapDB {
     analysis_details: any;
   }) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const { data, error } = await supabase
         .from('ai_valuations')
         .insert([{
@@ -315,6 +375,11 @@ export class WellSwapDB {
     offset?: number;
   }) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       let query = supabase
         .from('insurance_assets')
         .select('*')
@@ -343,6 +408,11 @@ export class WellSwapDB {
   // 사용자 거래 내역 조회
   static async getUserTransactions(walletAddress: string) {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const { data, error } = await supabase
         .from('transactions')
         .select(`
@@ -366,6 +436,11 @@ export class WellSwapDB {
   // 통계 데이터 조회
   static async getStatistics() {
     try {
+      const supabase = getSupabase();
+      if (!supabase) {
+        return { data: null, error: new Error('Supabase client not available') };
+      }
+
       const [assetsResult, transactionsResult, usersResult] = await Promise.all([
         supabase.from('insurance_assets').select('id', { count: 'exact' }),
         supabase.from('transactions').select('id, purchase_price', { count: 'exact' }),

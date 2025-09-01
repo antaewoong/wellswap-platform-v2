@@ -320,14 +320,23 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
     }
   };
 
+  // Mobile detection
+  const [isMobile, setIsMobile] = useState(false);
+  useEffect(() => {
+    setIsMobile(window.innerWidth < 768);
+    const checkMobile = () => setIsMobile(window.innerWidth < 768);
+    window.addEventListener('resize', checkMobile);
+    return () => window.removeEventListener('resize', checkMobile);
+  }, []);
+
   return (
-    <div className="flex flex-col space-y-6 p-6 bg-white rounded-xl shadow-lg border border-zinc-100">
+    <div className={`flex flex-col space-y-6 p-4 md:p-6 bg-white/10 backdrop-blur-md rounded-xl shadow-lg border border-white/20 ${isMobile ? 'mobile-glass-shadow' : ''}`}>
       <div className="flex items-center justify-between">
-        <h3 className="text-xl font-light text-zinc-900">
+        <h3 className="text-lg md:text-xl font-light text-neutral-900">
           Connect Solflare Wallet
         </h3>
         {isLoading && (
-          <div className="animate-spin rounded-full h-5 w-5 border-2 border-zinc-300 border-t-zinc-600"></div>
+          <div className="animate-spin rounded-full h-5 w-5 border-2 border-neutral-300 border-t-neutral-600"></div>
         )}
       </div>
 
@@ -336,7 +345,13 @@ const SolflareWalletConnect: React.FC<SolflareWalletConnectProps> = ({
           <button
             onClick={handleConnect}
             disabled={!wallet || isLoading}
-            className="w-full bg-zinc-900 hover:bg-zinc-800 disabled:bg-zinc-300 text-white font-light py-3 px-6 rounded-lg transition-all duration-300"
+            className={`
+              w-full bg-gradient-to-r from-neutral-900 to-neutral-800 hover:from-neutral-800 hover:to-neutral-700 
+              disabled:bg-neutral-300 text-white font-light py-4 px-6 rounded-xl transition-all duration-300
+              min-h-[48px] active:scale-95 shadow-lg hover:shadow-xl
+              ${isMobile ? 'text-base' : 'text-sm'}
+            `}
+            style={{ WebkitTapHighlightColor: 'transparent' }}
           >
             {!wallet ? 'Install Solflare' : isLoading ? 'Connecting...' : 'Connect Wallet'}
           </button>

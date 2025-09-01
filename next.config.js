@@ -1,5 +1,7 @@
+import withPWA from 'next-pwa';
+
 /** @type {import('next').NextConfig} */
-export default {
+const nextConfig = {
   reactStrictMode: true,
   typescript: {
     ignoreBuildErrors: true
@@ -46,3 +48,24 @@ export default {
   poweredByHeader: false,
   generateEtags: false,
 };
+
+// PWA configuration
+export default withPWA({
+  dest: 'public',
+  register: true,
+  skipWaiting: true,
+  disable: process.env.NODE_ENV === 'development',
+  runtimeCaching: [
+    {
+      urlPattern: /^https?.*/,
+      handler: 'NetworkFirst',
+      options: {
+        cacheName: 'wellswap-cache',
+        expiration: {
+          maxEntries: 200,
+          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+        }
+      }
+    }
+  ]
+})(nextConfig);

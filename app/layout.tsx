@@ -1,4 +1,4 @@
-import type { Metadata } from "next";
+import type { Metadata, Viewport } from "next";
 import { Inter, Noto_Sans_SC, Noto_Sans_JP } from "next/font/google";
 import "./globals.css";
 import { Web3Provider } from "../providers/web3";
@@ -25,12 +25,18 @@ const notoSansJP = Noto_Sans_JP({
 });
 
 export const metadata: Metadata = {
-  title: "WellSwap - Revolutionary Web3 Insurance Asset Trading Platform",
-  description: "AI-powered insurance asset trading platform. Trade insurance products safely and efficiently in Hong Kong, Singapore, and global markets. Blockchain-based multisig security with real-time AI valuation.",
-  keywords: "insurance assets, Web3, blockchain, AI valuation, Hong Kong insurance, Singapore insurance, multisig, insurance trading platform, DeFi, digital assets, smart contracts, BSC, Binance Smart Chain",
+  title: "WellSwap - Premium Insurance Trading Platform",
+  description: "AI-powered Web3 insurance asset trading with premium glassmorphism UI design. Blockchain security, real-time AI valuation, and mobile-optimized PWA experience.",
+  keywords: "insurance assets, Web3, blockchain, AI valuation, PWA, mobile trading, glassmorphism, premium UI, multisig, insurance trading platform, DeFi, digital assets, smart contracts, Polygon",
   authors: [{ name: "WellSwap Team" }],
   creator: "WellSwap",
   publisher: "WellSwap",
+  manifest: "/manifest.json",
+  appleWebApp: {
+    capable: true,
+    statusBarStyle: "default",
+    title: "WellSwap",
+  },
   formatDetection: {
     email: false,
     address: false,
@@ -80,6 +86,14 @@ export const metadata: Metadata = {
   },
   category: 'Finance',
   classification: 'Insurance Trading Platform',
+};
+
+export const viewport: Viewport = {
+  width: "device-width",
+  initialScale: 1,
+  maximumScale: 1,
+  userScalable: false,
+  viewportFit: "cover",
 };
 
 export default function RootLayout({

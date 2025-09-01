@@ -35,6 +35,7 @@ interface ListingItem {
 
 import React, { useEffect, useMemo, useRef, useState, useCallback } from "react";
 import { ethers } from 'ethers';
+import { createWorker } from 'tesseract.js';
 // Polygon Web3 integration - ethers.js is already imported
 import {
   ParallaxSection,
@@ -76,16 +77,35 @@ import {
   GlassContainer
 } from './ui/GlassmorphismComponents';
 import { Camera, Upload, User, Menu, X, Wallet, ArrowRight, Globe, MessageSquare, BarChart3, TrendingUp, Shield, CheckCircle2, AlertCircle, Clock, DollarSign, Key, Lock, Users } from 'lucide-react';
+import { 
+  VideoCameraIcon,
+  StarIcon,
+  ShieldCheckIcon,
+  CubeTransparentIcon,
+  BoltIcon,
+  ChartBarIcon,
+  CalendarDaysIcon,
+  ClockIcon,
+  CheckCircleIcon,
+  XCircleIcon,
+  PhoneIcon,
+  EnvelopeIcon,
+  LockClosedIcon,
+  TagIcon,
+  CurrencyDollarIcon
+} from '@heroicons/react/24/outline';
 
 // Polygon Web3 및 백엔드 연동
 import PolygonIntegration from './PolygonContractIntegration';
+import { getDefaultInsuranceIcon } from './utils/insurance-helpers';
 import { WellSwapDB } from '../lib/database-wellswap'
-import { supabase } from '../lib/database-wellswap'
+import { getSupabase } from '../lib/database-wellswap'
 import ReliabilityScore from './reliability/ReliabilityScore';
 import fulfillmentAPI from '../lib/fulfillment-api';
 import { AdminInquiryPanel } from './AdminInquiryPanel';
 import AdminPanel from './AdminPanel';
 import { THEME_ROOT_CLASS } from '../app/config/theme';
+import { getCompanyLogo, getLogoComponentProps } from '../lib/insurance-logos';
 
 // 타입 정의
 type TDict = any;
@@ -163,6 +183,29 @@ const MountLogger: React.FC<{ name: string }> = ({ name }) => {
     return () => console.log(`[${name}] UNMOUNT`);
   }, [name]);
   return null;
+};
+
+//
+// ✅ Company Logo Component 
+//
+const CompanyLogo: React.FC<{ company: string; size?: 'sm' | 'md' | 'lg' }> = ({ company, size = 'lg' }) => {
+  const logoProps = getLogoComponentProps(company, size);
+
+  return (
+    <div 
+      className={`w-full h-full rounded-lg border-2 flex items-center justify-center font-bold shadow-sm`}
+      style={logoProps.fallbackStyle}
+    >
+      <span className={`${size === 'sm' ? 'text-xs' : size === 'md' ? 'text-sm' : 'text-lg'}`}>
+        {logoProps.fallbackInitials}
+      </span>
+      {logoProps.company?.rating?.local && (
+        <div className="absolute -top-1 -right-1 text-xs font-bold text-white bg-green-500 rounded-full w-5 h-5 flex items-center justify-center">
+          {logoProps.company.rating.local[0]}
+        </div>
+      )}
+    </div>
+  );
 };
 
 //
@@ -245,9 +288,7 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
                 speed={120}
                 deleteSpeed={60}
                 delayBetweenTexts={3000}
-                gradient={true}
-                scale={true}
-                className="text-transparent bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-900 bg-clip-text whitespace-nowrap"
+                className="text-zinc-900 whitespace-nowrap font-light"
               />
             </h1>
           </GlassContainer>
@@ -306,7 +347,7 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
               className="group"
             >
               <span className="flex items-center gap-2">
-                <Wallet className="w-4 h-4 group-hover:scale-110 transition-transform duration-300" />
+                <Wallet className="w-4 h-4" />
                 Connect Wallet
               </span>
             </GlassButton>
@@ -346,8 +387,7 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
       <StaggerContainer staggerDelay={0.3}>
         <div className="grid grid-cols-1 md:grid-cols-3 gap-6 md:gap-8 max-w-6xl mx-auto">
           <StaggerItem>
-            <AnimatedCard className="p-6 md:p-8 border border-zinc-200 bg-zinc-50 text-center space-y-4"
-                 style={{ clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%)' }}>
+            <AnimatedCard className="p-6 md:p-8 border border-zinc-200 bg-zinc-50 text-center space-y-4">
               <BarChart3 className="h-10 w-10 md:h-12 md:w-12 text-zinc-700 mx-auto" />
               <h3 className="text-lg md:text-xl font-light text-zinc-900">{t.aiValuation}</h3>
               <p className="text-sm md:text-base text-zinc-600 font-light">{t.aiValuationDesc}</p>
@@ -355,8 +395,7 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
           </StaggerItem>
           
           <StaggerItem>
-            <AnimatedCard className="p-6 md:p-8 border border-zinc-200 bg-zinc-50 text-center space-y-4"
-                 style={{ clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%)' }}>
+            <AnimatedCard className="p-6 md:p-8 border border-zinc-200 bg-zinc-50 text-center space-y-4">
               <Globe className="h-10 w-10 md:h-12 md:w-12 text-zinc-700 mx-auto" />
               <h3 className="text-lg md:text-xl font-light text-zinc-900">{t.globalMarket}</h3>
               <p className="text-sm md:text-base text-zinc-600 font-light">{t.globalMarketDesc}</p>
@@ -364,8 +403,7 @@ export const HomePage = React.memo(function HomePage({ t, setCurrentPage, setSho
           </StaggerItem>
           
           <StaggerItem>
-            <AnimatedCard className="p-6 md:p-8 border border-zinc-200 bg-zinc-50 text-center space-y-4"
-                 style={{ clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%)' }}>
+            <AnimatedCard className="p-6 md:p-8 border border-zinc-200 bg-zinc-50 text-center space-y-4">
               <Shield className="h-10 w-10 md:h-12 md:w-12 text-zinc-700 mx-auto" />
               <h3 className="text-lg md:text-xl font-light text-zinc-900">{t.secureTrading}</h3>
               <p className="text-sm md:text-base text-zinc-600 font-light">{t.secureTradingDesc}</p>
@@ -472,7 +510,6 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
             onClick={connectWalletWithAuth}
             disabled={isLoading}
             className="px-4 py-2 bg-zinc-900 text-zinc-50 font-light text-sm hover:bg-zinc-800 transition-colors disabled:opacity-50"
-            style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%)' }}
           >
             {isLoading ? t.multisigConnecting : t.multisigAuthRequired}
           </button>
@@ -609,7 +646,7 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
                   setInsuranceData((prev: any) => ({ ...prev, customContractPeriod: value }));
                   
                   // 4자리 입력 시 자동으로 다음 필드로 포커스 이동
-                  if (value && value.length >= 4) {
+                  if (value && typeof value === 'string' && value.length >= 4) {
                     setTimeout(() => {
                       const nextField = document.querySelector('input[placeholder*="월"], select[data-field="paidPeriod"]') as HTMLElement;
                       if (nextField) {
@@ -808,12 +845,11 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
             <button
               onClick={handleSellSubmitWithStats}
               disabled={isLoading || !isAuthenticated || !isWeb3Connected}
-              className="w-full p-4 bg-zinc-900 text-zinc-50 font-light hover:bg-zinc-800 transform hover:translate-x-2 hover:translate-y-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-              style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+              className="w-full p-4 bg-zinc-900 text-zinc-50 font-light hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
             >
-              {isLoading ? '🔄 Step 1: Multisig Registration in Progress...' : 
+              {isLoading ? 'Step 1: Registration in Progress...' : 
                !isAuthenticated || !isWeb3Connected ? 'Multisig Authentication Required' : 
-               '🔄 Step 1: Multisig Registration (300 USD)'}
+               'Step 1: Multisig Registration (300 USD)'}
             </button>
           </div>
 
@@ -1002,6 +1038,133 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
   );
 });
 
+// 보험회사 로고 매핑 함수 (크롤링된 로고 우선 사용)
+const getInsuranceCompanyLogo = (companyName: string) => {
+  const company = companyName.toLowerCase();
+  
+  // Step 1: 크롤링된 로고 우선 사용
+  const crawledLogoUrl = getCrawledInsuranceLogo(companyName);
+  if (crawledLogoUrl) {
+    return (
+      <img 
+        src={crawledLogoUrl} 
+        alt={companyName}
+        className="w-12 h-12 object-contain rounded-lg"
+        onError={(e) => {
+          // 크롤링된 로고 실패시 정적 로고로 폴백
+          const staticLogo = getStaticInsuranceLogo(companyName);
+          if (staticLogo) {
+            e.currentTarget.src = staticLogo;
+          } else {
+            // 최종 폴백: 아이콘
+            e.currentTarget.style.display = 'none';
+            e.currentTarget.parentElement!.innerHTML = getDefaultInsuranceIcon(companyName);
+          }
+        }}
+      />
+    );
+  }
+  
+  // Step 2: 정적 로고 사용
+  const staticLogo = getStaticInsuranceLogo(companyName);
+  if (staticLogo) {
+    return (
+      <img 
+        src={staticLogo} 
+        alt={companyName}
+        className="w-12 h-12 object-contain rounded-lg"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+          e.currentTarget.parentElement!.innerHTML = getDefaultInsuranceIcon(companyName);
+        }}
+      />
+    );
+  }
+  
+  // Step 3: 기본 아이콘
+  return <div dangerouslySetInnerHTML={{__html: getDefaultInsuranceIcon(companyName)}} />;
+};
+
+// 크롤링된 로고 URL 가져오기 (API 연동)
+const getCrawledInsuranceLogo = (companyName: string): string | null => {
+  // TODO: 보험 감독국 크롤링 데이터에서 로고 URL 조회
+  // const response = await fetch(`/api/insurance-logos?company=${encodeURIComponent(companyName)}`);
+  // const data = await response.json();
+  // return data.logoUrl || null;
+  
+  // 임시: 로컬 스토리지 또는 캐시에서 조회
+  if (typeof window !== 'undefined') {
+    const cachedLogos = localStorage.getItem('insurance_company_logos');
+    if (cachedLogos) {
+      const logos = JSON.parse(cachedLogos);
+      return logos[companyName.toLowerCase()] || null;
+    }
+  }
+  return null;
+};
+
+// 정적 로고 파일 경로 반환
+const getStaticInsuranceLogo = (companyName: string): string | null => {
+  const company = companyName.toLowerCase();
+  
+  if (company.includes('aia') || company.includes('american international')) {
+    return '/logos/aia-logo.png';
+  }
+  
+  if (company.includes('prudential')) {
+    return '/logos/prudential-logo.png';
+  }
+  
+  if (company.includes('manulife')) {
+    return (
+      <img 
+        src="/logos/manulife-logo.png" 
+        alt="Manulife"
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+          e.currentTarget.parentElement!.innerHTML = `
+            <div class="w-full h-full bg-green-50 flex items-center justify-center rounded text-green-700 font-bold text-xs">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M17 8C8 10 5.9 16.17 3.82 21.34l1.89.66C7.5 17.32 9 14 16 12c0-1.1-.9-2-2-2l-3.59 3.59c-.39.39-1.02.39-1.41 0-.39-.39-.39-1.02 0-1.41L13 8h4z"/>
+              </svg>
+            </div>
+          `;
+        }}
+      />
+    );
+  }
+  
+  if (company.includes('zurich')) {
+    return (
+      <img 
+        src="/logos/zurich-logo.png" 
+        alt="Zurich"
+        className="w-full h-full object-contain"
+        onError={(e) => {
+          e.currentTarget.style.display = 'none';
+          e.currentTarget.parentElement!.innerHTML = `
+            <div class="w-full h-full bg-blue-50 flex items-center justify-center rounded text-blue-700 font-bold text-xs">
+              <svg class="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+                <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z"/>
+              </svg>
+            </div>
+          `;
+        }}
+      />
+    );
+  }
+  
+  // 기본값: 심플한 빌딩 아이콘
+  return (
+    <div className="w-full h-full bg-zinc-50 flex items-center justify-center rounded text-zinc-600">
+      <svg className="w-8 h-8" viewBox="0 0 24 24" fill="currentColor">
+        <path d="M12 7V3H2v18h20V7H12zM6 19H4v-2h2v2zm0-4H4v-2h2v2zm0-4H4V9h2v2zm0-4H4V5h2v2zm4 12H8v-2h2v2zm0-4H8v-2h2v2zm0-4H8V9h2v2zm0-4H8V5h2v2zm10 12h-8v-2h2v-2h-2v-2h2v-2h-2V9h8v10zm-2-8h-2v2h2v-2zm0 4h-2v2h2v-2z"/>
+      </svg>
+    </div>
+  );
+};
+
 //
 // ✅ BuyInsurancePage
 //
@@ -1097,121 +1260,179 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
         </div>
       </div>
 
-      {/* 리스팅 그리드 (기존 100% 유지) */}
-      <div className="grid grid-cols-1 xl:grid-cols-2 gap-4 md:gap-6">
-        {listingData.map(listing => (
+      {/* 글라스모피즘 프리미엄 보험 상품 그리드 */}
+      <div className="grid grid-cols-1 md:grid-cols-2 gap-6 relative">
+        
+        {listingData.map((listing, index) => (
           <div 
             key={listing.id}
-            className="p-4 md:p-6 border border-zinc-200 bg-zinc-50 hover:border-zinc-400 transition-colors"
-            style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+            className="group relative p-8 bg-white/80 backdrop-blur-xl border border-white/40 hover:border-white/60 transition-all duration-700 shadow-2xl hover:shadow-3xl rounded-3xl overflow-hidden hover:scale-[1.02] transform-gpu"
+            style={{
+              animationDelay: `${index * 150}ms`,
+              animation: 'slideInUp 0.8s ease-out forwards'
+            }}
           >
-            {/* 헤더 */}
-            <div className="flex flex-col sm:flex-row sm:items-start justify-between mb-4 gap-2">
-              <div className="flex-1">
-                <h3 className="font-light text-base md:text-lg text-zinc-900">{listing.productName}</h3>
-                <p className="text-xs md:text-sm text-zinc-600">{listing.company}</p>
-                <span className="inline-block px-2 py-1 text-xs bg-zinc-200 text-zinc-700 mt-1">
-                  {listing.category}
-                </span>
+            {/* 고급 글라스모피즘 배경 레이어들 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-white/60 via-white/20 to-transparent rounded-3xl"></div>
+            <div className="absolute inset-0 bg-gradient-to-tr from-transparent via-white/10 to-white/30 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-700"></div>
+            
+            {/* 프리미엄 라이트 이펙트 */}
+            <div className="absolute inset-0 bg-gradient-to-br from-transparent via-transparent to-blue-500/5 rounded-3xl opacity-0 group-hover:opacity-100 transition-all duration-1000"></div>
+            
+            {/* 미묘한 도트 패턴 */}
+            <div className="absolute inset-0 opacity-[0.03] bg-[radial-gradient(circle_at_2px_2px,_#000_1px,_transparent_0)]" style={{backgroundSize: '24px 24px'}}></div>
+            
+            {/* 호버시 글로우 이펙트 */}
+            <div className="absolute -inset-1 bg-gradient-to-r from-blue-600/10 via-purple-600/10 to-blue-600/10 rounded-3xl blur-2xl opacity-0 group-hover:opacity-100 transition-all duration-1000"></div>
+            {/* 프리미엄 헤더 - 보험회사 브랜딩 */}
+            <div className="relative z-10 flex items-start justify-between mb-8">
+              <div className="flex items-start space-x-5">
+                {/* 보험회사 로고 영역 */}
+                <div className="relative w-20 h-20 bg-white/90 backdrop-blur-md border border-zinc-200/50 flex items-center justify-center shadow-lg rounded-xl group-hover:shadow-xl transition-all duration-500 group-hover:scale-105">
+                  <div className="absolute inset-0 bg-gradient-to-br from-white/80 to-zinc-100/30 rounded-xl"></div>
+                  <div className="relative z-10 w-12 h-12">
+                    <CompanyLogo company={listing.company} />
+                  </div>
+                </div>
+                
+                <div className="flex-1 space-y-3">
+                  <div>
+                    <h3 className="font-medium text-xl text-zinc-900 leading-tight mb-1 group-hover:text-zinc-800 transition-colors">
+                      {listing.productName}
+                    </h3>
+                    <p className="text-sm text-zinc-600 font-medium tracking-wide">
+                      {listing.company}
+                    </p>
+                  </div>
+                  
+                  <div className="flex items-center gap-3">
+                    <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-emerald-50 to-teal-50 text-emerald-800 border border-emerald-200/60 rounded-full shadow-sm">
+                      <span className="w-1.5 h-1.5 bg-emerald-500 rounded-full mr-1.5"></span>
+                      {listing.category}
+                    </span>
+                    <span className="inline-flex items-center px-3 py-1.5 text-xs font-medium bg-gradient-to-r from-slate-50 to-zinc-50 text-zinc-700 border border-zinc-200/60 rounded-full shadow-sm">
+                      <svg className="w-3 h-3 mr-1.5" viewBox="0 0 24 24" fill="currentColor">
+                        <path d="M12 2C6.48 2 2 6.48 2 12s4.48 10 10 10 10-4.48 10-10S17.52 2 12 2zm-2 15l-5-5 1.41-1.41L10 14.17l7.59-7.59L19 8l-9 9z"/>
+                      </svg>
+                      HK Licensed
+                    </span>
+                  </div>
+                </div>
               </div>
-              <div className={`px-2 py-1 text-xs rounded shrink-0 ${
-                listing.status === 'available' ? 'bg-green-100 text-green-700' :
-                listing.status === 'pending' ? 'bg-yellow-100 text-yellow-700' :
-                listing.status === 'blockchain_pending' ? 'bg-blue-100 text-blue-700' :
-                'bg-red-100 text-red-700'
+              
+              <div className={`px-4 py-2 text-xs font-medium shrink-0 border ${
+                listing.status === 'available' ? 'bg-emerald-500/10 text-emerald-700 border-emerald-500/20' :
+                listing.status === 'pending' ? 'bg-violet-500/10 text-violet-700 border-violet-500/20' :
+                listing.status === 'blockchain_pending' ? 'bg-orange-500/10 text-orange-700 border-orange-500/20' :
+                'bg-stone-500/10 text-stone-600 border-stone-500/20'
               }`}>
-                {listing.status === 'available' ? t.available :
-                 listing.status === 'pending' ? t.pending :
-                 listing.status === 'blockchain_pending' ? '블록체인 거래중' : t.sold}
+                {listing.status === 'available' ? 'AVAILABLE FOR PURCHASE' :
+                 listing.status === 'pending' ? 'TRANSACTION PENDING' :
+                 listing.status === 'blockchain_pending' ? 'BLOCKCHAIN PROCESSING' : 'SOLD OUT'}
               </div>
             </div>
 
-            {/* 세부 정보 */}
-            <div className="space-y-1 md:space-y-2 mb-4 text-xs md:text-sm">
-              <div className="flex justify-between">
-                <span className="text-zinc-600">{t.contractPeriod}:</span>
-                <span className="text-zinc-900">{listing.contractPeriod}</span>
+
+            {/* 간소화된 상품 설명 */}
+            <div className="mb-4 p-4 bg-zinc-50 border border-zinc-200">
+              <h4 className="text-sm font-medium text-zinc-900 mb-2">Product Features</h4>
+              <ul className="text-xs text-zinc-700 space-y-1">
+                <li>• Guaranteed returns with flexible payment options</li>
+                <li>• Hong Kong Insurance Authority regulated</li>
+                <li>• International transfer capability</li>
+              </ul>
+            </div>
+
+            {/* 간소화된 계약 정보 */}
+            <div className="grid grid-cols-3 gap-3 mb-4">
+              <div className="p-3 bg-zinc-50 border border-zinc-200">
+                <div className="text-xs text-zinc-600 mb-1">Contract</div>
+                <div className="text-sm font-medium text-zinc-900">{listing.contractPeriod}</div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-600">{t.paymentPeriod}:</span>
-                <span className="text-zinc-900">{listing.paidPeriod}</span>
+              <div className="p-3 bg-zinc-50 border border-zinc-200">
+                <div className="text-xs text-zinc-600 mb-1">Annual</div>
+                <div className="text-sm font-medium text-zinc-900">${listing.annualPayment.toLocaleString()}</div>
               </div>
-              <div className="flex justify-between">
-                <span className="text-zinc-600">{t.annualPremium}:</span>
-                <span className="text-zinc-900">${listing.annualPayment.toLocaleString()}</span>
+              <div className={`p-3 border transition-colors ${
+                listing.riskGrade === 'A' ? 'bg-emerald-500/5 border-emerald-500/15' :
+                listing.riskGrade === 'B' ? 'bg-blue-500/5 border-blue-500/15' :
+                listing.riskGrade === 'C' ? 'bg-amber-500/5 border-amber-500/15' :
+                'bg-rose-500/5 border-rose-500/15'
+              }`}>
+                <div className="text-xs text-neutral-600 mb-1">Risk Grade</div>
+                <div className={`text-sm font-bold ${
+                  listing.riskGrade === 'A' ? 'text-emerald-700' :
+                  listing.riskGrade === 'B' ? 'text-blue-700' :
+                  listing.riskGrade === 'C' ? 'text-amber-700' :
+                  'text-rose-700'
+                }`}>
+                  Grade {listing.riskGrade}
+                </div>
               </div>
             </div>
 
             {/* 가격 정보 */}
-            <div className="border-t border-zinc-300 pt-4 mb-4">
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-zinc-600">{t.surrenderValue}:</span>
-                <span className="text-lg font-light text-zinc-700">
-                  ${listing.surrenderValue.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-zinc-600">{t.transferValue}:</span>
-                <span className="text-lg font-light text-zinc-900">
-                  ${listing.transferValue.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center mb-2">
-                <span className="text-sm text-zinc-600">{t.platformPrice}:</span>
-                <span className="text-xl font-light text-zinc-900">
-                  ${listing.platformPrice.toLocaleString()}
-                </span>
-              </div>
-              <div className="flex justify-between items-center">
-                <span className="text-sm text-zinc-600">{t.confidence}:</span>
-                <span className={`text-sm font-medium ${
-                  listing.confidence > 0.8 ? 'text-green-600' : 
-                  listing.confidence > 0.6 ? 'text-yellow-600' : 'text-red-600'
-                }`}>
-                  {(listing.confidence * 100).toFixed(1)}%
-                </span>
-              </div>
-              <div className="flex justify-between items-center mt-1">
-                <span className="text-sm text-zinc-600">{t.riskGrade}:</span>
-                <span className={`text-sm font-medium px-2 py-1 rounded ${
-                  listing.riskGrade === 'A' ? 'bg-green-100 text-green-700' :
-                  listing.riskGrade === 'B' ? 'bg-blue-100 text-blue-700' :
-                  listing.riskGrade === 'C' ? 'bg-yellow-100 text-yellow-700' :
-                  'bg-red-100 text-red-700'
-                }`}>
-                  {listing.riskGrade}
-                </span>
+            <div className="border-t border-zinc-200 pt-4 mb-4">
+              <div className="grid grid-cols-2 gap-3">
+                <div className="p-3 bg-zinc-50 border border-zinc-200">
+                  <div className="text-xs text-zinc-600 mb-1">Current Value</div>
+                  <div className="text-sm font-semibold text-zinc-900">
+                    ${listing.surrenderValue.toLocaleString()}
+                  </div>
+                </div>
+                <div className="p-3 bg-slate-50 border border-slate-300">
+                  <div className="text-xs text-slate-600 mb-1">Platform Price</div>
+                  <div className="text-sm font-bold text-slate-900">
+                    ${listing.platformPrice.toLocaleString()}
+                  </div>
+                </div>
               </div>
             </div>
 
-            {/* 액션 버튼 */}
-            <div className="space-y-2">
+            {/* 프리미엄 액션 버튼 */}
+            <div className="space-y-3">
               {listing.status === 'available' ? (
-                <div className="space-y-2">
+                <div className="space-y-3">
                   <button
                     onClick={() => handleBuySubmitWithStats(listing)}
                     disabled={!isAuthenticated || !isWeb3Connected || isLoading}
-                    className="w-full p-2 md:p-3 bg-zinc-900 text-zinc-50 text-sm md:text-base font-light hover:bg-zinc-800 transform hover:translate-x-1 hover:translate-y-1 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                    style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 100%, 0 100%)' }}
+                    className="w-full p-4 bg-zinc-900 text-zinc-50 text-sm md:text-base font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed"
                   >
-                    {isLoading ? 'Processing...' : 
-                     !isAuthenticated || !isWeb3Connected ? 'Connect Wallet to Purchase' : 
-                     'Purchase with Multisig'}
+                    <div className="flex items-center justify-center space-x-2">
+                      <span>
+                        {isLoading ? 'Processing Transaction...' : 
+                         !isAuthenticated || !isWeb3Connected ? 'Connect Wallet to Purchase' : 
+                         'Secure Multisig Purchase'}
+                      </span>
+                    </div>
                   </button>
-                  <button
-                    onClick={() => changePage('inquiry')}
-                    className="w-full p-2 md:p-3 border border-zinc-300 text-zinc-700 text-sm md:text-base font-light hover:border-zinc-400 hover:bg-zinc-100 transition-colors"
-                    style={{ clipPath: 'polygon(0 0, calc(100% - 10px) 0, 100% 100%, 0 100%)' }}
-                  >
-                    {t.inquireNow}
-                  </button>
+                  
+                  <div className="grid grid-cols-2 gap-3">
+                    <button
+                      onClick={() => changePage('inquiry')}
+                      className="p-3 border border-zinc-300 text-zinc-700 text-sm font-medium hover:border-zinc-400 hover:bg-zinc-50 transition-colors"
+                    >
+                      Expert Consultation
+                    </button>
+                    <button
+                      className="p-3 border border-zinc-300 text-zinc-700 text-sm font-medium hover:border-zinc-400 hover:bg-zinc-50 transition-colors"
+                    >
+                      Product Details
+                    </button>
+                  </div>
                 </div>
               ) : listing.status === 'pending' || listing.status === 'blockchain_pending' ? (
-                <div className="p-2 md:p-3 bg-yellow-50 border border-yellow-200 text-center">
+                <div className={`p-2 md:p-3 border text-center ${
+                  listing.status === 'blockchain_pending' ? 'bg-orange-500/8 border-orange-500/20' : 'bg-violet-500/8 border-violet-500/20'
+                }`}>
                   <div className="flex items-center justify-center space-x-2">
-                    <Clock className="w-4 h-4 text-yellow-600" />
-                    <p className="text-xs md:text-sm text-yellow-700">
-                      {listing.status === 'blockchain_pending' ? '블록체인 거래 진행 중' : '거래 진행 중'}
+                    <Clock className={`w-4 h-4 ${
+                      listing.status === 'blockchain_pending' ? 'text-orange-600' : 'text-violet-600'
+                    }`} />
+                    <p className={`text-xs md:text-sm ${
+                      listing.status === 'blockchain_pending' ? 'text-orange-700' : 'text-violet-700'
+                    }`}>
+                      {listing.status === 'blockchain_pending' ? 'Blockchain Transaction in Progress' : 'Transaction in Progress'}
                     </p>
                     </div>
                 </div>
@@ -1219,7 +1440,7 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
                 <div className="p-2 md:p-3 bg-red-50 border border-red-200 text-center">
                   <div className="flex items-center justify-center space-x-2">
                     <CheckCircle2 className="w-4 h-4 text-red-600" />
-                    <p className="text-xs md:text-sm text-red-700">이 상품은 판매되었습니다</p>
+                    <p className="text-xs md:text-sm text-red-700">This product has been sold</p>
                     </div>
                 </div>
               )}
@@ -1260,24 +1481,120 @@ export const InquiryPage = React.memo(function InquiryPage({
     name: '',
     phone: '',
     email: '',
-    inquiryContent: ''
+    inquiryContent: '',
+    preferredMessenger: 'whatsapp',
+    messengerId: '',
+    consultationDate: '',
+    consultationTime: '',
+    timezone: 'HKT'
   });
   const [isSubmitting, setIsSubmitting] = useState(false);
+  const [selectedDateIndex, setSelectedDateIndex] = useState(-1);
+  const [availableSlots, setAvailableSlots] = useState<string[]>([]);
+
+  // 일주일 내 날짜 옵션 생성
+  const getDateOptions = () => {
+    const dates = [];
+    const today = new Date();
+    for (let i = 1; i <= 7; i++) {
+      const date = new Date(today);
+      date.setDate(today.getDate() + i);
+      const dayName = date.toLocaleDateString('en-US', { weekday: 'long' });
+      const isWeekend = date.getDay() === 0 || date.getDay() === 6;
+      dates.push({
+        value: date.toISOString().split('T')[0],
+        label: date.toLocaleDateString('en-US', { 
+          weekday: 'short', 
+          month: 'short', 
+          day: 'numeric' 
+        }),
+        fullLabel: dayName,
+        date: date.getDate(),
+        month: date.toLocaleDateString('en-US', { month: 'short' }),
+        isWeekend,
+        isAvailable: !isWeekend // 주말은 비활성화
+      });
+    }
+    return dates;
+  };
+
+  // Generate time slots (HKT 9AM-6PM)
+  const getTimeSlots = (dateIndex: number) => {
+    const slots = [];
+    const selectedDate = getDateOptions()[dateIndex];
+    if (!selectedDate?.isAvailable) return [];
+
+    // In production, check booked times via API
+    const bookedSlots = ['14:00', '15:30']; // Example: already booked times
+    
+    for (let hour = 9; hour < 18; hour++) {
+      for (let minute = 0; minute < 60; minute += 30) {
+        const timeString = `${hour.toString().padStart(2, '0')}:${minute.toString().padStart(2, '0')}`;
+        const displayTime = new Date(`2000-01-01T${timeString}`).toLocaleTimeString('en-US', {
+          hour: 'numeric',
+          minute: '2-digit',
+          hour12: true
+        });
+        
+        const isBooked = bookedSlots.includes(timeString);
+        const isPastTime = dateIndex === 0 && new Date().getHours() >= hour; // If today, only future times
+        
+        slots.push({
+          value: timeString,
+          label: displayTime,
+          isAvailable: !isBooked && !isPastTime
+        });
+      }
+    }
+    return slots;
+  };
+
+  const handleDateSelect = (dateValue: string, index: number) => {
+    setSelectedDateIndex(index);
+    setInquiryData(prev => ({ 
+      ...prev, 
+      consultationDate: dateValue,
+      consultationTime: '' // Reset time when date changes
+    }));
+    setAvailableSlots(getTimeSlots(index).map(slot => slot.value));
+  };
+
+  const handleTimeSelect = (timeValue: string) => {
+    setInquiryData(prev => ({ 
+      ...prev, 
+      consultationTime: timeValue
+    }));
+  };
 
   const handleSubmit = async () => {
-    if (!inquiryData.name || !inquiryData.phone || !inquiryData.inquiryContent) {
-      alert('필수 항목을 모두 입력해주세요.');
+    if (!inquiryData.name || !inquiryData.phone || !inquiryData.inquiryContent || !inquiryData.consultationDate || !inquiryData.consultationTime) {
+      alert('Please fill in all required fields including your preferred consultation date and time.');
       return;
     }
 
     setIsSubmitting(true);
     try {
-      await handleInquirySubmit(inquiryData);
-      setInquiryData({ name: '', phone: '', email: '', inquiryContent: '' });
-      alert('상담 신청이 완료되었습니다. 빠른 시일 내에 연락드리겠습니다.');
+      const enrichedData = {
+        ...inquiryData,
+        consultationType: 'zoom_video_call',
+        requestedDateTime: `${inquiryData.consultationDate} ${inquiryData.consultationTime} ${inquiryData.timezone}`
+      };
+      await handleInquirySubmit(enrichedData);
+      setInquiryData({ 
+        name: '', 
+        phone: '', 
+        email: '', 
+        inquiryContent: '',
+        preferredMessenger: 'whatsapp',
+        messengerId: '',
+        consultationDate: '',
+        consultationTime: '',
+        timezone: 'HKT'
+      });
+      alert('Premium consultation request submitted successfully. Our team will contact you within 24 hours to confirm your Zoom video call appointment.');
     } catch (error) {
-      console.error('상담 신청 실패:', error);
-      alert('상담 신청 중 오류가 발생했습니다. 다시 시도해주세요.');
+      console.error('Consultation request failed:', error);
+      alert('Failed to submit consultation request. Please try again.');
     } finally {
       setIsSubmitting(false);
     }
@@ -1291,11 +1608,11 @@ export const InquiryPage = React.memo(function InquiryPage({
             <DynamicTypewriter 
               texts={[
                 "CONCIERGE",
-                "コンシェルジュ", // Japanese - Concierge
-                "礼宾", // Chinese - Concierge/VIP Service
-                "CONCIERGERIE", // French - Concierge Service  
-                "CONSERJERÍA", // Spanish - Concierge
-                "CONCIERGE" // German - Concierge (same)
+                "コンシェルジュ",
+                "礼宾",
+                "CONCIERGERIE",
+                "CONSERJERÍA",
+                "CONCIERGE"
               ]}
               speed={100}
               deleteSpeed={80}
@@ -1317,109 +1634,409 @@ export const InquiryPage = React.memo(function InquiryPage({
         </FadeInAnimation>
         <FadeInAnimation delay={0.8}>
           <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
-            {t.insuranceTransferExpert}
+            Exclusive Premium Consulting for WellSwap Platform Users
           </p>
         </FadeInAnimation>
       </div>
       
       <div className="max-w-6xl">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
-          {/* 기존 소개글 (왼쪽) */}
+          {/* Premium Zoom Consultation Form */}
           <div className="space-y-6">
-            <div className="p-6 md:p-8 border border-zinc-200 bg-zinc-50"
-                 style={{ clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%)' }}>
-              <h2 className="text-xl md:text-2xl font-extralight text-zinc-900 mb-4 md:mb-6">Professional Concierge Service</h2>
-              <div className="space-y-3 md:space-y-4 text-sm md:text-base text-zinc-600 font-light">
-                <p>Our team of experts assists with every step of the insurance asset transfer process. From complex legal procedures to international regulatory compliance, we ensure safe and efficient transfers.</p>
-                <ul className="space-y-1 md:space-y-2 pl-4">
-                  <li>• Legal documentation and review</li>
-                  <li>• Transfer process management</li>
-                  <li>• Cross-border regulatory compliance</li>
-                  <li>• Due diligence and risk assessment</li>
-                </ul>
-              </div>
-              
-              <div className="mt-6 md:mt-8">
-                <h3 className="text-base md:text-lg font-light text-zinc-900 mb-3 md:mb-4">Contact Information</h3>
-                <div className="space-y-1 md:space-y-2 text-sm md:text-base text-zinc-600 font-light">
-                  <p>Email: concierge@wellswap.com</p>
-                  <p>Phone: +852 1234 5678</p>
-                  <p>Operating Hours: Monday - Friday, 9:00 AM - 6:00 PM (HKT)</p>
-                </div>
+            <div className="text-center mb-6">
+              <h2 className="text-2xl font-extralight text-zinc-900 mb-2">Premium Zoom Video Consultation</h2>
+              <div className="flex items-center justify-center space-x-2 text-sm text-zinc-600">
+                <VideoCameraIcon className="w-5 h-5 text-zinc-700" />
+                <span>Secure video call with our specialists</span>
               </div>
             </div>
-          </div>
-
-          {/* 상담 신청 폼 (오른쪽) */}
-          <div className="space-y-6">
-            <h2 className="text-2xl font-extralight text-zinc-900">Inquiry Form</h2>
             
-            <div className="space-y-4">
-              <div>
-                <label className="block text-sm font-light text-zinc-600 mb-2">Name *</label>
-                <SafeInput
-                  type="text"
-                  value={inquiryData.name}
-                  onChange={(value: string) => setInquiryData(prev => ({ ...prev, name: value }))}
-                  placeholder="Enter your name"
-                  className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors"
-                  style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
-                />
-              </div>
-              
-              <div>
-                <label className="block text-sm font-light text-zinc-600 mb-2">Phone *</label>
-                <SafeInput
-                  type="tel"
-                  value={inquiryData.phone}
-                  onChange={(value: string) => setInquiryData(prev => ({ ...prev, phone: value }))}
-                  placeholder="Enter your phone number"
-                  className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors"
-                  style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
-                />
+            <div className="space-y-5">
+              {/* Personal Info */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-600 mb-2">Full Name *</label>
+                  <SafeInput
+                    type="text"
+                    value={inquiryData.name}
+                    onChange={(value) => setInquiryData(prev => ({ ...prev, name: value }))}
+                    placeholder="Your full name"
+                    className="w-full p-3 bg-white/40 backdrop-blur-sm border border-white/40 text-zinc-900 font-light focus:outline-none focus:border-emerald-400 transition-colors placeholder-zinc-500 rounded-lg"
+                  />
+                </div>
+                
+                <div>
+                  <label className="block text-sm font-medium text-zinc-600 mb-2">Phone *</label>
+                  <SafeInput
+                    type="tel"
+                    value={inquiryData.phone}
+                    onChange={(value: string) => setInquiryData(prev => ({ ...prev, phone: value }))}
+                    placeholder="+852 / +65 / +1 ..."
+                    className="w-full p-3 bg-white/40 backdrop-blur-sm border border-white/40 text-zinc-900 font-light focus:outline-none focus:border-emerald-400 transition-colors placeholder-zinc-500 rounded-lg"
+                  />
+                </div>
               </div>
 
               <div>
-                <label className="block text-sm font-light text-zinc-600 mb-2">Email</label>
+                <label className="block text-sm font-medium text-zinc-600 mb-2">Email</label>
                 <SafeInput
                   type="email"
                   value={inquiryData.email}
                   onChange={(value: string) => setInquiryData(prev => ({ ...prev, email: value }))}
-                  placeholder="Enter your email (optional)"
-                  className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors"
-                  style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+                  placeholder="your.email@domain.com (optional)"
+                  className="w-full p-3 bg-white/40 backdrop-blur-sm border border-white/40 text-zinc-900 font-light focus:outline-none focus:border-emerald-400 transition-colors placeholder-zinc-500 rounded-lg"
                 />
+              </div>
+
+              {/* Messenger Contact */}
+              <div className="grid grid-cols-1 md:grid-cols-2 gap-4">
+                <div>
+                  <label className="block text-sm font-medium text-zinc-600 mb-2">Preferred Messenger</label>
+                  <select
+                    value={inquiryData.preferredMessenger}
+                    onChange={(e) => setInquiryData(prev => ({ ...prev, preferredMessenger: e.target.value }))}
+                    className="w-full p-3 bg-white/40 backdrop-blur-sm border border-white/40 text-zinc-900 font-light focus:outline-none focus:border-emerald-400 transition-colors rounded-lg"
+                  >
+                    <option value="whatsapp">WhatsApp</option>
+                    <option value="telegram">Telegram</option>
+                    <option value="wechat">WeChat</option>
+                    <option value="signal">Signal</option>
+                  </select>
+                </div>
+
+                <div>
+                  <label className="block text-sm font-medium text-zinc-600 mb-2">Messenger ID/Number</label>
+                  <SafeInput
+                    type="text"
+                    value={inquiryData.messengerId}
+                    onChange={(value: string) => setInquiryData(prev => ({ ...prev, messengerId: value }))}
+                    placeholder="@username or +phone"
+                    className="w-full p-3 bg-white/40 backdrop-blur-sm border border-white/40 text-zinc-900 font-light focus:outline-none focus:border-emerald-400 transition-colors placeholder-zinc-500 rounded-lg"
+                  />
+                </div>
+              </div>
+
+              {/* Calendly-Style Consultation Schedule */}
+              <div className="p-6 bg-gradient-to-br from-emerald-50/80 to-cyan-50/80 backdrop-blur-sm border border-emerald-200/50 rounded-xl shadow-lg">
+                <h3 className="text-lg font-medium text-emerald-900 mb-6 flex items-center justify-center">
+                  <div className="mr-3 w-8 h-8 bg-gradient-to-br from-emerald-500 to-cyan-600 rounded-lg flex items-center justify-center">
+                    <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
+                      <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+                      <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
+                      <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
+                      <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  Select Your Consultation Time
+                </h3>
+                
+                {/* Step 1: Date Selection */}
+                <div className="mb-6">
+                  <div className="flex items-center justify-between mb-4">
+                    <h4 className="text-sm font-medium text-emerald-800">Choose a Date</h4>
+                    <div className="text-xs text-emerald-600 bg-emerald-100/50 px-2 py-1 rounded-full">
+                      Hong Kong Time (HKT)
+                    </div>
+                  </div>
+                  
+                  <div className="grid grid-cols-2 md:grid-cols-4 gap-2">
+                    {getDateOptions().map((dateOption, index) => (
+                      <button
+                        key={dateOption.value}
+                        onClick={() => dateOption.isAvailable ? handleDateSelect(dateOption.value, index) : null}
+                        disabled={!dateOption.isAvailable}
+                        className={`p-4 rounded-xl transition-all duration-200 border-2 ${
+                          selectedDateIndex === index
+                            ? 'bg-emerald-600 text-white border-emerald-600 shadow-lg scale-105'
+                            : dateOption.isAvailable
+                            ? 'bg-white/60 hover:bg-emerald-100/60 border-emerald-200 hover:border-emerald-400 text-zinc-800'
+                            : 'bg-gray-100/50 border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                        }`}
+                      >
+                        <div className="text-center">
+                          <div className="text-xs font-medium mb-1">
+                            {dateOption.fullLabel}
+                          </div>
+                          <div className="text-lg font-bold">
+                            {dateOption.date}
+                          </div>
+                          <div className="text-xs opacity-75">
+                            {dateOption.month}
+                          </div>
+                          {!dateOption.isAvailable && (
+                            <div className="text-xs mt-1 opacity-60">Weekend</div>
+                          )}
+                        </div>
+                      </button>
+                    ))}
+                  </div>
+                </div>
+
+                {/* Step 2: Time Selection */}
+                {selectedDateIndex >= 0 && (
+                  <div className="border-t border-emerald-200/50 pt-6">
+                    <div className="flex items-center justify-between mb-4">
+                      <h4 className="text-sm font-medium text-emerald-800">Choose a Time</h4>
+                      <div className="text-xs text-emerald-600">
+                        {getDateOptions()[selectedDateIndex]?.label}
+                      </div>
+                    </div>
+                    
+                    <div className="grid grid-cols-2 md:grid-cols-3 lg:grid-cols-4 gap-2">
+                      {getTimeSlots(selectedDateIndex).map((timeSlot) => (
+                        <button
+                          key={timeSlot.value}
+                          onClick={() => timeSlot.isAvailable ? handleTimeSelect(timeSlot.value) : null}
+                          disabled={!timeSlot.isAvailable}
+                          className={`p-3 rounded-lg transition-all duration-200 text-sm font-medium ${
+                            inquiryData.consultationTime === timeSlot.value
+                              ? 'bg-emerald-600 text-white shadow-md scale-105'
+                              : timeSlot.isAvailable
+                              ? 'bg-white/70 hover:bg-emerald-100 border border-emerald-200 hover:border-emerald-400 text-zinc-800'
+                              : 'bg-gray-100/50 border border-gray-200 text-gray-400 cursor-not-allowed opacity-50'
+                          }`}
+                        >
+                          {timeSlot.label}
+                          {!timeSlot.isAvailable && (
+                            <div className="text-xs opacity-60 mt-1">Booked</div>
+                          )}
+                        </button>
+                      ))}
+                    </div>
+                    
+                    {getTimeSlots(selectedDateIndex).length === 0 && (
+                      <div className="text-center py-8 text-gray-500">
+                        <div className="w-12 h-12 mx-auto mb-3 bg-gray-200 rounded-full flex items-center justify-center">
+                          <svg className="w-6 h-6 text-gray-400" viewBox="0 0 24 24" fill="none">
+                            <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                            <path d="m15 9-6 6M9 9l6 6" stroke="currentColor" strokeWidth="2"/>
+                          </svg>
+                        </div>
+                        <div className="text-sm">No available slots for this date</div>
+                      </div>
+                    )}
+                  </div>
+                )}
+
+                {/* Selection Summary */}
+                {inquiryData.consultationDate && inquiryData.consultationTime && (
+                  <div className="mt-6 p-4 bg-white/60 backdrop-blur-sm border border-emerald-300/50 rounded-lg">
+                    <div className="flex items-center justify-between">
+                      <div>
+                        <div className="text-sm font-medium text-emerald-800">Selected Appointment</div>
+                        <div className="text-xs text-emerald-600 mt-1 flex items-center space-x-3">
+                          <div className="flex items-center space-x-1">
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                              <rect x="3" y="4" width="18" height="18" rx="2" ry="2" stroke="currentColor" strokeWidth="2"/>
+                              <line x1="16" y1="2" x2="16" y2="6" stroke="currentColor" strokeWidth="2"/>
+                              <line x1="8" y1="2" x2="8" y2="6" stroke="currentColor" strokeWidth="2"/>
+                              <line x1="3" y1="10" x2="21" y2="10" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                            <span>{getDateOptions().find(d => d.value === inquiryData.consultationDate)?.label}</span>
+                          </div>
+                          <div className="flex items-center space-x-1">
+                            <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                              <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                              <polyline points="12,6 12,12 16,14" stroke="currentColor" strokeWidth="2"/>
+                            </svg>
+                            <span>{getTimeSlots(selectedDateIndex).find(t => t.value === inquiryData.consultationTime)?.label} HKT</span>
+                          </div>
+                        </div>
+                      </div>
+                      <div className="w-8 h-8 bg-emerald-500 rounded-full flex items-center justify-center">
+                        <svg className="w-5 h-5 text-white" viewBox="0 0 24 24" fill="none">
+                          <polyline points="20,6 9,17 4,12" stroke="currentColor" strokeWidth="2"/>
+                        </svg>
+                      </div>
+                    </div>
+                  </div>
+                )}
+                
+                <div className="mt-4 text-xs text-emerald-600 text-center space-y-2">
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                      <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+                    </svg>
+                    <span>Business hours: Monday-Friday, 9:00 AM - 6:00 PM (HKT)</span>
+                  </div>
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                      <polyline points="12,6 12,12 16,14" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                    <span>Each consultation session is 60 minutes</span>
+                  </div>
+                  <div className="flex items-center justify-center space-x-2">
+                    <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                      <path d="M1 4v16a1 1 0 0 0 1 1h2V3H2a1 1 0 0 0-1 1zM19 3h-2v18h2a1 1 0 0 0 1-1V4a1 1 0 0 0-1-1z" fill="currentColor"/>
+                      <path d="M12 2l3 7h7l-5.5 4L19 20l-7-5-7 5 2.5-7L2 9h7z" stroke="currentColor" strokeWidth="1"/>
+                    </svg>
+                    <span>You can reschedule up to 24 hours before your appointment</span>
+                  </div>
+                </div>
               </div>
               
               <div>
-                <label className="block text-sm font-light text-zinc-600 mb-2">Inquiry Details *</label>
+                <label className="block text-sm font-medium text-zinc-600 mb-2">Consultation Requirements *</label>
                 <textarea
                   value={inquiryData.inquiryContent}
                   onChange={(e) => setInquiryData(prev => ({ ...prev, inquiryContent: e.target.value }))}
-                  placeholder="Please provide detailed information about your inquiry"
+                  placeholder="Describe your insurance transfer requirements, target jurisdictions, portfolio size, and any specific concerns for our specialists..."
                   rows={4}
-                  className="w-full p-4 border border-zinc-200 bg-zinc-50 text-zinc-900 font-light focus:outline-none focus:border-zinc-400 transition-colors resize-none"
-                  style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+                  className="w-full p-4 bg-white/40 backdrop-blur-sm border border-white/40 text-zinc-900 font-light focus:outline-none focus:border-emerald-400 transition-colors resize-none placeholder-zinc-500 rounded-lg"
                 />
               </div>
               
               <button 
                 onClick={handleSubmit}
                 disabled={isSubmitting}
-                className="w-full p-4 bg-zinc-900 text-zinc-50 font-light hover:bg-zinc-800 transform hover:translate-x-2 hover:translate-y-2 transition-all duration-300 disabled:opacity-50 disabled:cursor-not-allowed"
-                style={{ clipPath: 'polygon(0 0, calc(100% - 12px) 0, 100% 100%, 0 100%)' }}
+                className="w-full p-4 bg-zinc-900 text-zinc-50 font-medium hover:bg-zinc-800 transition-colors disabled:opacity-50 disabled:cursor-not-allowed flex items-center justify-center space-x-3"
               >
-                {isSubmitting ? 'Submitting...' : 'Submit Inquiry'}
+                <svg className="w-5 h-5" viewBox="0 0 24 24" fill="none">
+                  <path d="M23 7l-7 5 7 5V7z" fill="currentColor"/>
+                  <rect x="1" y="5" width="15" height="14" rx="2" ry="2" stroke="currentColor" strokeWidth="2" fill="none"/>
+                </svg>
+                <span>
+                  {isSubmitting ? 'Scheduling Your Consultation...' : 'Schedule Premium Zoom Consultation'}
+                </span>
+                {!isSubmitting && (
+                  <svg className="w-4 h-4" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 2l3.09 6.26L22 9.27l-5 4.87 1.18 6.88L12 17.77l-6.18 3.25L7 14.14 2 9.27l6.91-1.01L12 2z" fill="currentColor"/>
+                  </svg>
+                )}
               </button>
+              
+              <div className="p-4 bg-amber-50/60 backdrop-blur-sm border border-amber-200/50 rounded-lg mt-4">
+                <h4 className="text-sm font-medium text-amber-800 mb-2 flex items-center">
+                  <div className="mr-2 w-5 h-5 bg-gradient-to-br from-amber-500 to-orange-600 rounded flex items-center justify-center">
+                    <svg className="w-3 h-3 text-white" viewBox="0 0 24 24" fill="none">
+                      <path d="M20 7l-8-4-8 4m16 0l-8 4m8-4v10l-8 4m0-10L4 7m8 4v10" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                  </div>
+                  Professional Service Notice
+                </h4>
+                <div className="text-xs text-amber-700 space-y-1">
+                  <p>• <strong>100% Appointment-Based:</strong> All consultations are by reservation only to ensure dedicated specialist attention</p>
+                  <p>• <strong>Service Tiers:</strong> Initial consultation included • Advanced specialist services subject to concierge fees</p>
+                  <p>• <strong>Premium Quality:</strong> Tailored advisory for sophisticated insurance transfer requirements</p>
+                </div>
+              </div>
+              
+              <div className="text-center text-xs text-zinc-500 mt-3 flex items-center justify-center space-x-4">
+                <div className="flex items-center space-x-1">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                    <path d="M12 1a3 3 0 0 0-3 3v8a3 3 0 0 0 6 0V4a3 3 0 0 0-3-3zM19 10v2a7 7 0 0 1-14 0v-2" stroke="currentColor" strokeWidth="2"/>
+                    <line x1="12" y1="19" x2="12" y2="23" stroke="currentColor" strokeWidth="2"/>
+                    <line x1="8" y1="23" x2="16" y2="23" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                  <span>Your information is secure</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                    <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                  <span>We'll confirm within 24 hours</span>
+                </div>
+                <div className="flex items-center space-x-1">
+                  <svg className="w-3 h-3" viewBox="0 0 24 24" fill="none">
+                    <circle cx="12" cy="12" r="4" stroke="currentColor" strokeWidth="2"/>
+                    <path d="m22 12c-1 0-3-1-3-3s2-3 3-3 3 1 3 3-2 3-3 3" stroke="currentColor" strokeWidth="2"/>
+                    <path d="m7 12c0 2-2 3-3 3s-3-1-3-3 2-3 3-3 3 1 3 3" stroke="currentColor" strokeWidth="2"/>
+                  </svg>
+                  <span>Exclusive to WellSwap users</span>
+                </div>
+              </div>
             </div>
           </div>
+
+          {/* Expert Services - 우측 배치 */}
+          <div className="space-y-6">
+            <div className="p-6 md:p-8 bg-white/20 backdrop-blur-xl border border-white/30 shadow-lg"
+                 style={{ clipPath: 'polygon(0 0, calc(100% - 16px) 0, 100% 100%, 0 100%)' }}>
+              <h2 className="text-xl md:text-2xl font-extralight text-zinc-900 mb-6">Specialist Advisory Services</h2>
+              
+              <div className="mb-4 p-3 bg-emerald-50/80 backdrop-blur-sm border border-emerald-200 text-emerald-800 text-sm font-medium text-center rounded-lg flex items-center justify-center space-x-2">
+                <StarIcon className="w-4 h-4 text-emerald-600" />
+                <span>Exclusive to WellSwap Platform Users Only</span>
+              </div>
+              
+              <div className="grid grid-cols-2 gap-4 mb-6">
+                <div className="p-4 bg-white/30 backdrop-blur-sm border border-white/20 hover:bg-white/40 transition-all duration-300"
+                     style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%)' }}>
+                  <div className="mb-3 flex items-center justify-center w-10 h-10 bg-gradient-to-br from-blue-500 to-indigo-600 rounded-lg">
+                    <ShieldCheckIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-sm font-medium text-zinc-900">Legal Advisory</h3>
+                  <p className="text-xs text-zinc-600 mt-1">US-qualified attorneys</p>
+                </div>
+                <div className="p-4 bg-white/30 backdrop-blur-sm border border-white/20 hover:bg-white/40 transition-all duration-300"
+                     style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%)' }}>
+                  <div className="mb-3 flex items-center justify-center w-10 h-10 bg-gradient-to-br from-emerald-500 to-teal-600 rounded-lg">
+                    <CubeTransparentIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-sm font-medium text-zinc-900">Strategy</h3>
+                  <p className="text-xs text-zinc-600 mt-1">MBA-level consulting</p>
+                </div>
+                <div className="p-4 bg-white/30 backdrop-blur-sm border border-white/20 hover:bg-white/40 transition-all duration-300"
+                     style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%)' }}>
+                  <div className="mb-3 flex items-center justify-center w-10 h-10 bg-gradient-to-br from-purple-500 to-pink-600 rounded-lg">
+                    <BoltIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-sm font-medium text-zinc-900">Ventures</h3>
+                  <p className="text-xs text-zinc-600 mt-1">Private equity expertise</p>
+                </div>
+                <div className="p-4 bg-white/30 backdrop-blur-sm border border-white/20 hover:bg-white/40 transition-all duration-300"
+                     style={{ clipPath: 'polygon(0 0, calc(100% - 8px) 0, 100% 100%, 0 100%)' }}>
+                  <div className="mb-3 flex items-center justify-center w-10 h-10 bg-gradient-to-br from-amber-500 to-orange-600 rounded-lg">
+                    <ChartBarIcon className="w-5 h-5 text-white" />
+                  </div>
+                  <h3 className="text-sm font-medium text-zinc-900">Tax & Accounting</h3>
+                  <p className="text-xs text-zinc-600 mt-1">International CPA</p>
+                </div>
+              </div>
+
+              <div className="space-y-3 text-sm text-zinc-600 font-light">
+                <p>• Cross-border regulatory compliance for HK/SG jurisdictions</p>
+                <p>• Legal documentation review and structuring</p>
+                <p>• Due diligence and risk assessment</p>
+                <p>• Blockchain-secured escrow services</p>
+              </div>
+              
+              <div className="mt-6">
+                <h3 className="text-base font-light text-zinc-900 mb-3">Contact Information</h3>
+                <div className="space-y-2 text-sm text-zinc-600 font-light">
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none">
+                      <path d="M4 4h16c1.1 0 2 .9 2 2v12c0 1.1-.9 2-2 2H4c-1.1 0-2-.9-2-2V6c0-1.1.9-2 2-2z" stroke="currentColor" strokeWidth="2"/>
+                      <polyline points="22,6 12,13 2,6" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                    <span>concierge@wellswap.com</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none">
+                      <path d="M22 16.92v3a2 2 0 0 1-2.18 2 19.79 19.79 0 0 1-8.63-3.07 19.5 19.5 0 0 1-6-6 19.79 19.79 0 0 1-3.07-8.67A2 2 0 0 1 4.11 2h3a2 2 0 0 1 2 1.72 12.84 12.84 0 0 0 .7 2.81 2 2 0 0 1-.45 2.11L8.09 9.91a16 16 0 0 0 6 6l1.27-1.27a2 2 0 0 1 2.11-.45 12.84 12.84 0 0 0 2.81.7A2 2 0 0 1 22 16.92z" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                    <span>+852 1234 5678</span>
+                  </div>
+                  <div className="flex items-center space-x-2">
+                    <svg className="w-4 h-4 text-emerald-600" viewBox="0 0 24 24" fill="none">
+                      <circle cx="12" cy="12" r="10" stroke="currentColor" strokeWidth="2"/>
+                      <polyline points="12,6 12,12 16,14" stroke="currentColor" strokeWidth="2"/>
+                    </svg>
+                    <span>Mon-Fri 9AM-6PM (HKT)</span>
+                  </div>
+                </div>
+              </div>
+            </div>
+          </div>
+
         </div>
       </div>
     </div>
   );
 });
 
-// 관리자 페이지 컴포넌트 (멀티시그 거래 관리 포함)
+// Admin page component (includes multisig trade management)
 const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
   t: any;
   isAdmin: boolean;
@@ -1435,7 +2052,7 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
   const [loading, setLoading] = useState(false);
   const [dbStatus, setDbStatus] = useState<'loading' | 'connected' | 'error'>('loading');
   const [debugInfo, setDebugInfo] = useState<any>(null);
-  // 거래 관련 함수들 직접 구현
+  // Direct implementation of trade-related functions
   const executeTrade = async (tradeId: string) => {
     console.log('거래 실행:', tradeId);
     return { success: true, transactionHash: '0x...' };
@@ -1485,7 +2102,7 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
           return;
         }
         
-        console.log('📊 전체 자산 데이터:', allAssets);
+        console.log('💼 전체 자산 데이터:', allAssets);
         
         // 3. pending 상태의 자산만 필터링
         const pendingAssets = allAssets?.filter(asset => asset.status === 'pending') || [];
@@ -1530,7 +2147,7 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
           return;
         }
 
-        console.log('📊 멀티시그 거래 데이터:', data);
+        console.log('💼 멀티시그 거래 데이터:', data);
         setMultisigTrades(data || []);
         
       } catch (error) {
@@ -1550,7 +2167,7 @@ const AdminPage = ({ t, isAdmin, web3Account, listings, setListings }: {
 
     setLoading(true);
     try {
-      console.log('🤖 어드민: AI 평가 및 멀티시그 거래 생성 시작...', listing);
+      console.log('📊 어드민: AI 평가 및 멀티시그 거래 생성 시작...', listing);
       
       // 1. AI 평가 결과 업데이트
       const { error: aiError } = await supabase
@@ -1709,7 +2326,7 @@ export default function WellSwapGlobalPlatform() {
   const [ocrProgress, setOcrProgress] = useState(0);
   const [ocrResult, setOcrResult] = useState<any>(null);
 
-  // 🤖 AI 크롤링 데이터 상태
+  // AI 크롤링 데이터 상태
   const [fulfillmentData, setFulfillmentData] = useState<any>(null);
   const [isCrawling, setIsCrawling] = useState(false);
 
@@ -1970,11 +2587,10 @@ export default function WellSwapGlobalPlatform() {
     setOcrProgress(0);
     
     try {
-      console.log('🚀 OCR AI 분석 시작...');
+      console.log('🎯 OCR AI 분석 시작...');
       
       // 1단계: Tesseract.js OCR 엔진 초기화
       setOcrProgress(10);
-      const { createWorker } = await import('tesseract.js');
       const worker = await createWorker();
       await worker.loadLanguage('eng+kor+chi_sim');
       await worker.initialize('eng+kor+chi_sim');
@@ -2092,7 +2708,7 @@ export default function WellSwapGlobalPlatform() {
     return extracted;
   };
 
-  // 🤖 AI 크롤링 함수들
+  // AI 크롤링 함수들
   const fetchFulfillmentData = async (insurerName: string, productType: string, policyYear: number = 5) => {
     setIsCrawling(true);
     try {
@@ -2115,7 +2731,7 @@ export default function WellSwapGlobalPlatform() {
 
   const triggerCrawling = async () => {
     try {
-      console.log('🔄 크롤링 트리거 시작...');
+      console.log('⚙️ 크롤링 트리거 시작...');
       const result = await fulfillmentAPI.triggerCrawling();
       console.log('✅ 크롤링 트리거 완료:', result);
       alert('크롤링이 성공적으로 시작되었습니다.');
@@ -2135,7 +2751,7 @@ export default function WellSwapGlobalPlatform() {
       const wallet = await PolygonIntegration.connectMetaMask();
       
       const walletAddress = wallet.address;
-      console.log('💰 지갑 주소 확인:', walletAddress);
+      console.log('👛 지갑 주소 확인:', walletAddress);
       
       // 지갑 상태 업데이트
       setConnectedWallet(wallet);
@@ -2310,7 +2926,7 @@ export default function WellSwapGlobalPlatform() {
     setIsLoading(true);
     setAssetRegistrationLoading(true);
     try {
-      console.log('🚀 Polygon 멀티시그 거래 시작...');
+      console.log('⚡ Polygon 멀티시그 거래 시작...');
       
       // 1단계: 자산 등록 (300 USDC 지불)
       setTradeSteps(prev => ({ ...prev, stage: 1 }));
@@ -2339,7 +2955,7 @@ export default function WellSwapGlobalPlatform() {
         }));
 
         // 2단계: AI 평가 및 크롤링 데이터 통합
-        console.log('🤖 2단계: AI 평가 및 크롤링 데이터 분석 중...');
+        console.log('📊 2단계: AI 평가 및 크롤링 데이터 분석 중...');
         
         // AI 크롤링 데이터 가져오기
         let fulfillmentWeights = null;
@@ -2369,7 +2985,7 @@ export default function WellSwapGlobalPlatform() {
                      Math.round(fulfillmentWeights.reliabilityScore * 100) : 85
         };
         
-        console.log('📊 AI 평가 데이터:', {
+        console.log('💼 AI 평가 데이터:', {
           baseValue,
           adjustmentFactor,
           adjustedValue: evaluationData.aiValueUSD,
@@ -2783,7 +3399,7 @@ export default function WellSwapGlobalPlatform() {
 
   // Web3 상태 변화 모니터링
   useEffect(() => {
-    console.log('🔄 Web3 상태 업데이트:', {
+    console.log('⚙️ Web3 상태 업데이트:', {
       isWeb3Connected,
       web3Account,
       isAuthenticated,
@@ -2796,7 +3412,7 @@ export default function WellSwapGlobalPlatform() {
 
   // 컴포넌트 마운트 시 초기 상태 로깅
   useEffect(() => {
-    console.log('🚀 WellSwap 컴포넌트 마운트됨');
+    console.log('⚡ WellSwap 컴포넌트 마운트됨');
     console.log('초기 상태:', {
       currentPage,
       isAuthenticated,

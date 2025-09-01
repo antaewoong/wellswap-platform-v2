@@ -1,12 +1,13 @@
 {
-  "name": "WellSwap - Revolutionary Web3 Insurance Asset Trading Platform",
+  "name": "WellSwap - Premium Insurance Trading Platform",
   "short_name": "WellSwap",
-  "description": "AI-powered insurance asset trading platform for Hong Kong, Singapore, and international markets",
+  "description": "AI-powered Web3 insurance asset trading with blockchain security. Premium glassmorphism UI design.",
   "start_url": "/",
   "display": "standalone",
-  "background_color": "#0a0a0a",
-  "theme_color": "#0ea5e9",
+  "background_color": "#fafafa",
+  "theme_color": "#171717",
   "orientation": "portrait-primary",
+  "scope": "/",
   "icons": [
     {
       "src": "/favicon.ico",
@@ -14,19 +15,35 @@
       "type": "image/x-icon"
     },
     {
-      "src": "/icon-192.png",
+      "src": "/icon-192.png", 
       "sizes": "192x192",
       "type": "image/png",
       "purpose": "any maskable"
     },
     {
       "src": "/icon-512.png",
-      "sizes": "512x512",
+      "sizes": "512x512", 
       "type": "image/png",
       "purpose": "any maskable"
     }
   ],
-  "categories": ["finance", "business", "productivity"],
+  "categories": ["finance", "blockchain", "insurance", "web3"],
+  "shortcuts": [
+    {
+      "name": "Sell Insurance",
+      "short_name": "Sell",
+      "description": "Register insurance for trading",
+      "url": "/?page=sell",
+      "icons": [{"src": "/icon-192.png", "sizes": "192x192"}]
+    },
+    {
+      "name": "Buy Insurance", 
+      "short_name": "Buy",
+      "description": "Browse available insurance assets",
+      "url": "/?page=buy",
+      "icons": [{"src": "/icon-192.png", "sizes": "192x192"}]
+    }
+  ],
   "lang": "en",
   "dir": "ltr"
 }

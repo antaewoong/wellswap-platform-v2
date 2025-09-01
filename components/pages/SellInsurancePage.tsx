@@ -2,7 +2,7 @@
 
 import React, { useState, useCallback } from 'react';
 import { Camera, Upload } from 'lucide-react';
-import { SafeInput } from '../SafeInput';
+import SafeInput from '../SafeInput';
 import {
   ParallaxSection,
   FadeInAnimation,
@@ -184,7 +184,11 @@ export default function SellInsurancePage({
                     onClick={() => {
                       const input = document.getElementById('contract-date-input') as HTMLInputElement;
                       if (input) {
-                        input.showPicker?.() || input.click();
+                        if (input.showPicker) {
+                          input.showPicker();
+                        } else {
+                          input.click();
+                        }
                       }
                     }}
                     className="absolute inset-y-0 right-0 flex items-center pr-4 text-zinc-400 hover:text-zinc-600 transition-colors cursor-pointer"
