@@ -3099,92 +3099,6 @@ export default function WellSwapGlobalPlatform() {
       } else {
         throw new Error(purchaseResult.error || '구매 처리 실패');
       }
-
-      console.log('📝 멀티시그 거래 생성 데이터:', assetData);
-      
-      // registerAsset 대신 createMultisigTrade 사용
-      if (!contract) {
-        throw new Error('컨트랙트가 연결되지 않았습니다');
-      }
-      
-      // 가스 추정
-      const agreedPriceWei = ethers.parseEther(assetData.totalPaymentUSD.toString());
-      let gasEstimate;
-      try {
-        gasEstimate = await contract.estimateGas.createMultisigTrade(
-          1, // assetId (임시로 1 사용)
-          agreedPriceWei // agreedPrice in wei
-        );
-        console.log('⛽ 가스 추정값:', gasEstimate.toString());
-      } catch (gasError) {
-        console.warn('⚠️ 가스 추정 실패, 기본값 사용');
-        gasEstimate = '0x7A120'; // 500000 in hex
-      }
-      
-      // 멀티시그 거래 생성
-      console.log('🔗 컨트랙트 함수 호출 준비:', {
-        assetId: 1,
-        agreedPriceWei: agreedPriceWei.toString(),
-        value: agreedPriceWei.toString(),
-        gasLimit: typeof gasEstimate === 'string' ? gasEstimate : gasEstimate.mul(120).div(100).toString(),
-        contractAddress: contract.address,
-        contractFunctions: Object.keys(contract.functions || {})
-      });
-
-      // 컨트랙트 주소 확인
-      if (contract.address !== '0xa84125fe1503485949d3e4fedcc454429289c8ea') {
-        console.warn('⚠️ 컨트랙트 주소 불일치:', contract.address);
-      }
-
-      // 컨트랙트 함수 존재 확인
-      if (!contract.createMultisigTrade) {
-        console.error('❌ createMultisigTrade 함수가 컨트랙트에 존재하지 않습니다!');
-        console.log('사용 가능한 함수들:', Object.keys(contract.functions || {}));
-        throw new Error('컨트랙트에 createMultisigTrade 함수가 없습니다');
-      }
-
-      console.log('✅ createMultisigTrade 함수 확인됨');
-
-      const tx = await contract.createMultisigTrade(
-        1, // assetId (임시로 1 사용)
-        agreedPriceWei, // agreedPrice in wei
-        {
-          value: agreedPriceWei.toString(), // ETH 전송 (문자열로 변환)
-          gasLimit: typeof gasEstimate === 'string' ? gasEstimate : gasEstimate.mul(120).div(100).toString()
-        }
-      );
-      
-      console.log('📤 트랜잭션 전송됨:', tx.hash);
-      const receipt = await tx.wait();
-
-      console.log('✅ 구매 완료:', receipt);
-      alert('구매가 완료되었습니다!');
-      
-      // API Routes를 통한 보험 자산 상태 업데이트
-      try {
-        const updateResponse = await fetch('/api/insurance', {
-          method: 'PATCH',
-          headers: {
-            'Content-Type': 'application/json',
-          },
-          body: JSON.stringify({
-            id: listing?.id?.toString() || '1',
-            status: 'sold',
-            buyer_address: currentWalletAddress,
-            sold_at: new Date().toISOString(),
-            sold_price: listing?.platformPrice || 0,
-            walletAddress: currentWalletAddress
-          })
-        });
-
-        if (!updateResponse.ok) {
-          console.warn('⚠️ 보험 자산 상태 업데이트 실패');
-        } else {
-          console.log('✅ 보험 자산 상태 업데이트 완료');
-        }
-      } catch (updateError) {
-        console.error('보험 자산 상태 업데이트 오류:', updateError);
-      }
         
     } catch (error: any) {
       console.error('❌ 구매 실패:', error);
@@ -3245,7 +3159,7 @@ export default function WellSwapGlobalPlatform() {
   };
 
   // 실제 보험 리스팅 데이터 로드
-  const [listingData, setListingData] = useState<any[]>([]);
+  const [listingData, setListingData] = useState<any[]>([
     {
       id: 1,
       company: 'AIA Group Limited',
@@ -3297,7 +3211,7 @@ export default function WellSwapGlobalPlatform() {
       seller: '0x9999...8888',
       listingDate: '2024-08-22'
     }
-  ];
+  ]);
 
   const t = {
     homeTitle: "Home",
