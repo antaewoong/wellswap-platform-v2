@@ -174,7 +174,7 @@ const BuyPageOptimized = memo<BuyPageOptimizedProps>(({
       <StaggerContainer>
         <div className="grid grid-cols-1 md:grid-cols-2 lg:grid-cols-3 gap-6">
           {filteredListings.map((listing, index) => (
-            <StaggerItem key={listing.id} index={index}>
+            <StaggerItem key={listing.id}>
               <AnimatedCard className="hover:shadow-lg transition-shadow">
                 <div className="p-6">
                   {/* 상품 헤더 */}

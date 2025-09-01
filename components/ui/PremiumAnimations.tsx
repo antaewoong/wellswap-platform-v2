@@ -7,11 +7,11 @@ import { motion, useScroll, useTransform, useSpring, useMotionValue, useInView }
 
 // Premium easing curves (60fps.design style)
 export const easings = {
-  smooth: [0.44, 0, 0.56, 1],
-  gentle: [0.25, 0.46, 0.45, 0.94], 
-  bounce: [0.68, -0.55, 0.265, 1.55],
-  sharp: [0.4, 0, 0.6, 1],
-  elastic: [0.175, 0.885, 0.32, 1.275]
+  smooth: "easeInOut",
+  gentle: "easeOut", 
+  bounce: "backOut",
+  sharp: "easeInOut",
+  elastic: "circOut"
 };
 
 // Smooth Button with 60fps-style interactions
@@ -118,10 +118,10 @@ export const PremiumCard = ({
   const [mousePosition, setMousePosition] = useState({ x: 0, y: 0 });
   const [isHovered, setIsHovered] = useState(false);
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!ref.current || !tilt) return;
     
-    const rect = ref.current.getBoundingClientRect();
+    const rect = (ref.current as HTMLElement).getBoundingClientRect();
     const x = (e.clientX - rect.left - rect.width / 2) / rect.width;
     const y = (e.clientY - rect.top - rect.height / 2) / rect.height;
     
@@ -310,10 +310,10 @@ export const MagneticButton = ({
   const ref = useRef(null);
   const [position, setPosition] = useState({ x: 0, y: 0 });
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!ref.current) return;
     
-    const rect = ref.current.getBoundingClientRect();
+    const rect = (ref.current as HTMLElement).getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     

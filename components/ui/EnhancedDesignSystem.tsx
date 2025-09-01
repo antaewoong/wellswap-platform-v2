@@ -398,6 +398,7 @@ export const WalletConnectionCard = ({
                 onClick={onConnect}
                 isLoading={isLoading}
                 size="sm"
+                icon={null}
               >
                 Connect Wallet
               </ModernButton>

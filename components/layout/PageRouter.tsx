@@ -27,7 +27,7 @@ export const PageRouter: React.FC<PageRouterProps> = ({
   // 현재 페이지에 따라 해당 컴포넌트만 렌더링 (메모리 효율성)
   switch (currentPage) {
     case 'home':
-      return <HomePage t={sellPageProps.t} setCurrentPage={sellPageProps.setCurrentPage} />;
+      return <HomePage currentPage={currentPage} setCurrentPage={sellPageProps.setCurrentPage} />;
     
     case 'sell':
       return <SellPage {...sellPageProps} />;
@@ -42,6 +42,6 @@ export const PageRouter: React.FC<PageRouterProps> = ({
       return <AdminInquiryPanel {...adminPageProps} />;
     
     default:
-      return <HomePage t={sellPageProps.t} setCurrentPage={sellPageProps.setCurrentPage} />;
+      return <HomePage currentPage={currentPage} setCurrentPage={sellPageProps.setCurrentPage} />;
   }
 };

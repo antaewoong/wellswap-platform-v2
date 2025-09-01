@@ -19,8 +19,30 @@ import { GlassCard, GlassButton } from './ui/GlassmorphismComponents';
 import { MagneticWrapper, FloatingCard, StaggeredText } from './ui/PremiumInteractions';
 import { useIsMobile } from './ui/MobileOptimized';
 
+// Define the insurance listing type
+interface InsuranceListing {
+  id: string;
+  company: string;
+  type: string;
+  premium: number;
+  coverage: number;
+  risk_grade: string;
+  status: string;
+  blockchain_verified: boolean;
+  valuation: number;
+  roi: number;
+  annual_premium: number;
+  contract_period: string;
+  max_age: number;
+  min_coverage: number;
+  location: string;
+  rating: number;
+  features: string[];
+  category: string;
+}
+
 // Sample data with enhanced structure inspired by 10Life
-const SAMPLE_INSURANCE_LISTINGS = [
+const SAMPLE_INSURANCE_LISTINGS: InsuranceListing[] = [
   {
     id: '1',
     company: 'AIA',
@@ -120,12 +142,27 @@ const OptimizedBuyPage: React.FC<OptimizedBuyPageProps> = ({
   const [isLoading, setIsLoading] = useState(false);
   const [listings, setListings] = useState(SAMPLE_INSURANCE_LISTINGS);
   
+  // Define filter types
+  interface Filters {
+    category: string[];
+    status: string[];
+    premiumRange: [number, number];
+    coverageRange: [number, number];
+    riskGrade: string[];
+    company: string[];
+    features: string[];
+    rating: number;
+    location: string[];
+    sortBy: string;
+    sortOrder: 'asc' | 'desc';
+  }
+
   // Filters state using the comprehensive filter system
-  const [filters, setFilters] = useState({
+  const [filters, setFilters] = useState<Filters>({
     category: [],
     status: [],
-    premiumRange: [0, 1000000] as [number, number],
-    coverageRange: [0, 10000000] as [number, number],
+    premiumRange: [0, 1000000],
+    coverageRange: [0, 10000000],
     riskGrade: [],
     company: [],
     features: [],

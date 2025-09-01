@@ -76,10 +76,10 @@ export const GlassButton = ({
   const ref = useRef(null);
   const [magneticPosition, setMagneticPosition] = useState({ x: 0, y: 0 });
 
-  const handleMouseMove = (e) => {
+  const handleMouseMove = (e: React.MouseEvent) => {
     if (!ref.current || !magnetic) return;
     
-    const rect = ref.current.getBoundingClientRect();
+    const rect = (ref.current as HTMLElement).getBoundingClientRect();
     const centerX = rect.left + rect.width / 2;
     const centerY = rect.top + rect.height / 2;
     
