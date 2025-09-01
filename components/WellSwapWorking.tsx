@@ -2,9 +2,8 @@
 
 import React, { useState, useEffect } from 'react';
 import { motion } from 'framer-motion';
-import { Wallet, Shield, TrendingUp, Globe, ChevronRight, Plus, Search } from 'lucide-react';
+import { Wallet, Shield, TrendingUp, Globe, Plus, Search } from 'lucide-react';
 import MobileWalletConnect from './MobileWalletConnect';
-// import * as InsuranceAPI from '../lib/insurance-api';
 
 interface ListingData {
   id: number;
@@ -24,14 +23,14 @@ interface ListingData {
   listingDate: string;
 }
 
-export default function WellSwapMinimal() {
+export default function WellSwapWorking() {
   const [currentPage, setCurrentPage] = useState('home');
   const [isConnected, setIsConnected] = useState(false);
   const [connectedAccount, setConnectedAccount] = useState('');
   const [balance, setBalance] = useState(0);
   const [isLoading, setIsLoading] = useState(false);
 
-  // 간소화된 리스팅 데이터
+  // 실제 보험 리스팅 데이터 (기존과 동일)
   const [listingData] = useState<ListingData[]>([
     {
       id: 1,
@@ -99,7 +98,7 @@ export default function WellSwapMinimal() {
     alert(error);
   };
 
-  // 판매 처리
+  // 판매 처리 (실제 API 연동 준비)
   const handleSellSubmit = async () => {
     if (!isConnected) {
       alert('지갑을 먼저 연결해주세요.');
@@ -108,10 +107,10 @@ export default function WellSwapMinimal() {
 
     setIsLoading(true);
     try {
-      // TODO: InsuranceAPI 연동
+      // 여기에 실제 InsuranceAPI.registerInsuranceAsset 호출
       console.log('보험 자산 등록:', sellData);
       
-      // 시뮬레이션
+      // 임시 시뮬레이션
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       alert(`🎉 등록 완료!\n상품명: ${sellData.productName}\n보험회사: ${sellData.insuranceCompany}`);
@@ -134,7 +133,7 @@ export default function WellSwapMinimal() {
     }
   };
 
-  // 구매 처리
+  // 구매 처리 (실제 API 연동 준비)
   const handleBuySubmit = async (listing: ListingData) => {
     if (!isConnected) {
       alert('지갑을 먼저 연결해주세요.');
@@ -143,10 +142,10 @@ export default function WellSwapMinimal() {
 
     setIsLoading(true);
     try {
-      // TODO: InsuranceAPI 연동
+      // 여기에 실제 InsuranceAPI.purchaseInsuranceAsset 호출
       console.log('보험 자산 구매:', listing);
       
-      // 시뮬레이션
+      // 임시 시뮬레이션
       await new Promise(resolve => setTimeout(resolve, 2000));
       
       alert(`🎉 구매 완료!\n상품: ${listing.productName}\n회사: ${listing.company}\n가격: $${listing.platformPrice.toLocaleString()}`);
@@ -160,7 +159,7 @@ export default function WellSwapMinimal() {
   // 네비게이션
   const Navigation = () => (
     <nav className="flex justify-center space-x-1 bg-white/10 backdrop-blur-md rounded-2xl p-2 border border-white/20">
-      {['home', 'sell', 'buy'].map((page) => (
+      {['home', 'sell', 'buy', 'inquiry'].map((page) => (
         <button
           key={page}
           onClick={() => setCurrentPage(page)}
@@ -170,7 +169,9 @@ export default function WellSwapMinimal() {
               : 'text-neutral-600 hover:bg-white/50 hover:text-neutral-800'
           }`}
         >
-          {page === 'home' ? '홈' : page === 'sell' ? '판매' : '구매'}
+          {page === 'home' ? '홈' : 
+           page === 'sell' ? '판매' : 
+           page === 'buy' ? '구매' : '문의'}
         </button>
       ))}
     </nav>
@@ -193,7 +194,7 @@ export default function WellSwapMinimal() {
           animate={{ opacity: 1, y: 0 }}
           transition={{ delay: 0.2 }}
         >
-          보험 자산을 전 세계적으로 거래하세요
+          AI 기반 보험 자산 글로벌 거래 플랫폼
         </motion.p>
       </div>
 
@@ -203,8 +204,8 @@ export default function WellSwapMinimal() {
           whileHover={{ scale: 1.02 }}
         >
           <Shield className="w-12 h-12 text-blue-600 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">안전한 거래</h3>
-          <p className="text-neutral-600">블록체인 기반으로 투명하고 안전한 보험 자산 거래</p>
+          <h3 className="text-lg font-semibold mb-2">블록체인 보안</h3>
+          <p className="text-neutral-600">Polygon 네트워크 기반의 투명하고 안전한 거래</p>
         </motion.div>
 
         <motion.div 
@@ -212,8 +213,8 @@ export default function WellSwapMinimal() {
           whileHover={{ scale: 1.02 }}
         >
           <TrendingUp className="w-12 h-12 text-green-600 mb-4" />
-          <h3 className="text-lg font-semibold mb-2">AI 평가</h3>
-          <p className="text-neutral-600">인공지능을 통한 정확한 보험 자산 가치 평가</p>
+          <h3 className="text-lg font-semibold mb-2">AI 기반 평가</h3>
+          <p className="text-neutral-600">머신러닝을 통한 정확한 보험 자산 가치 평가</p>
         </motion.div>
 
         <motion.div 
@@ -222,13 +223,31 @@ export default function WellSwapMinimal() {
         >
           <Globe className="w-12 h-12 text-purple-600 mb-4" />
           <h3 className="text-lg font-semibold mb-2">글로벌 접근</h3>
-          <p className="text-neutral-600">홍콩, 싱가포르 및 국제 시장 접근</p>
+          <p className="text-neutral-600">홍콩, 싱가포르, 한국 보험 시장 연결</p>
         </motion.div>
+      </div>
+
+      <div className="text-center">
+        <p className="text-neutral-500 mb-4">시작하려면 지갑을 연결하세요</p>
+        <div className="flex justify-center space-x-4">
+          <button
+            onClick={() => setCurrentPage('sell')}
+            className="bg-blue-600 hover:bg-blue-700 text-white px-6 py-3 rounded-xl transition-colors"
+          >
+            보험 자산 판매하기
+          </button>
+          <button
+            onClick={() => setCurrentPage('buy')}
+            className="bg-green-600 hover:bg-green-700 text-white px-6 py-3 rounded-xl transition-colors"
+          >
+            보험 자산 구매하기
+          </button>
+        </div>
       </div>
     </div>
   );
 
-  // 판매 페이지
+  // 판매 페이지 (원본과 동일한 디자인)
   const SellPage = () => (
     <div className="max-w-2xl mx-auto">
       <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
@@ -340,7 +359,7 @@ export default function WellSwapMinimal() {
             ) : (
               <>
                 <Plus className="w-5 h-5 mr-2" />
-                자산 등록
+                자산 등록 {!isConnected && '(지갑 연결 필요)'}
               </>
             )}
           </button>
@@ -349,7 +368,7 @@ export default function WellSwapMinimal() {
     </div>
   );
 
-  // 구매 페이지
+  // 구매 페이지 (원본과 동일한 디자인)
   const BuyPage = () => (
     <div className="space-y-6">
       <div className="flex items-center justify-between">
@@ -391,7 +410,7 @@ export default function WellSwapMinimal() {
                 <p className="font-medium">${listing.surrenderValue.toLocaleString()}</p>
               </div>
               <div>
-                <p className="text-sm text-neutral-500">신뢰도</p>
+                <p className="text-sm text-neutral-500">AI 신뢰도</p>
                 <p className="font-medium">{(listing.confidence * 100).toFixed(1)}%</p>
               </div>
               <div>
@@ -414,12 +433,56 @@ export default function WellSwapMinimal() {
               ) : (
                 <>
                   <Wallet className="w-5 h-5 mr-2" />
-                  구매하기
+                  구매하기 {!isConnected && '(지갑 연결 필요)'}
                 </>
               )}
             </button>
           </motion.div>
         ))}
+      </div>
+    </div>
+  );
+
+  // 문의 페이지
+  const InquiryPage = () => (
+    <div className="max-w-2xl mx-auto">
+      <div className="bg-white/10 backdrop-blur-md rounded-2xl p-8 border border-white/20">
+        <h2 className="text-2xl font-bold mb-6 text-neutral-800">고객 문의</h2>
+        
+        <div className="space-y-4">
+          <div>
+            <label className="block text-sm font-medium mb-2">이름</label>
+            <input
+              type="text"
+              className="w-full px-4 py-3 bg-white/50 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="성함을 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">이메일</label>
+            <input
+              type="email"
+              className="w-full px-4 py-3 bg-white/50 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="이메일을 입력하세요"
+            />
+          </div>
+
+          <div>
+            <label className="block text-sm font-medium mb-2">문의 내용</label>
+            <textarea
+              rows={5}
+              className="w-full px-4 py-3 bg-white/50 border border-white/30 rounded-xl focus:outline-none focus:ring-2 focus:ring-blue-500"
+              placeholder="문의하실 내용을 입력하세요"
+            />
+          </div>
+
+          <button
+            className="w-full bg-purple-600 hover:bg-purple-700 text-white py-4 rounded-xl font-medium transition-colors"
+          >
+            문의하기
+          </button>
+        </div>
       </div>
     </div>
   );
@@ -456,6 +519,7 @@ export default function WellSwapMinimal() {
           {currentPage === 'home' && <HomePage />}
           {currentPage === 'sell' && <SellPage />}
           {currentPage === 'buy' && <BuyPage />}
+          {currentPage === 'inquiry' && <InquiryPage />}
         </main>
 
         {/* 모바일 지갑 연결 */}

@@ -6,22 +6,25 @@ import SupabaseKeepAlive from "../components/SupabaseKeepAlive";
 
 const inter = Inter({
   variable: "--font-inter",
-  subsets: ["latin", "latin-ext"],
+  subsets: ["latin"],
   display: 'swap',
+  preload: true,
 });
 
 const notoSansSC = Noto_Sans_SC({
   variable: "--font-noto-sc",
   subsets: ["latin"],
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
+  preload: false,
 });
 
 const notoSansJP = Noto_Sans_JP({
   variable: "--font-noto-jp", 
   subsets: ["latin"],
-  weight: ['100', '200', '300', '400', '500', '600', '700', '800', '900'],
+  weight: ['400', '500', '600', '700'],
   display: 'swap',
+  preload: false,
 });
 
 export const metadata: Metadata = {

@@ -14,6 +14,10 @@ const nextConfig = {
     formats: ['image/webp', 'image/avif'],
     deviceSizes: [640, 750, 828, 1080, 1200, 1920, 2048, 3840],
   },
+  // 폰트 preload 경고 해결
+  experimental: {
+    optimizePackageImports: ['framer-motion', 'lucide-react'],
+  },
   webpack: (config, { isServer }) => {
     // 기본 fallback 설정
     config.resolve.fallback = {
