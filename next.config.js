@@ -53,23 +53,25 @@ const nextConfig = {
   generateEtags: false,
 };
 
-// PWA configuration
-export default withPWA({
-  dest: 'public',
-  register: true,
-  skipWaiting: true,
-  disable: process.env.NODE_ENV === 'development',
-  runtimeCaching: [
-    {
-      urlPattern: /^https?.*/,
-      handler: 'NetworkFirst',
-      options: {
-        cacheName: 'wellswap-cache',
-        expiration: {
-          maxEntries: 200,
-          maxAgeSeconds: 24 * 60 * 60 // 24 hours
+// PWA configuration - temporarily disable for Vercel compatibility
+export default process.env.NODE_ENV === 'production' 
+  ? nextConfig  // 프로덕션에서 PWA 비활성화
+  : withPWA({
+      dest: 'public',
+      register: true,
+      skipWaiting: true,
+      disable: process.env.NODE_ENV === 'development',
+      runtimeCaching: [
+        {
+          urlPattern: /^https?.*/,
+          handler: 'NetworkFirst',
+          options: {
+            cacheName: 'wellswap-cache',
+            expiration: {
+              maxEntries: 200,
+              maxAgeSeconds: 24 * 60 * 60 // 24 hours
+            }
+          }
         }
-      }
-    }
-  ]
-})(nextConfig);
+      ]
+    })(nextConfig);
