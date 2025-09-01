@@ -1,6 +1,5 @@
 {
   "version": 2,
-  "name": "wellswap-platform",
   "buildCommand": "npm run build",
   "outputDirectory": ".next",
   "installCommand": "npm install",
