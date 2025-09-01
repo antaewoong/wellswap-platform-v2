@@ -27,11 +27,7 @@ const getSupabaseConfig = () => {
 let supabaseInstance: any = null;
 
 const createSupabaseClient = () => {
-  // 브라우저 환경에서만 실행
-  if (typeof window === 'undefined') {
-    return null;
-  }
-  
+  // 서버와 브라우저 환경 모두 지원
   if (supabaseInstance) {
     return supabaseInstance;
   }

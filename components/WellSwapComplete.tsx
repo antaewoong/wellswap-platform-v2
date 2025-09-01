@@ -77,6 +77,7 @@ import {
   GlassContainer
 } from './ui/GlassmorphismComponents';
 import { Camera, Upload, User, Menu, X, Wallet, ArrowRight, Globe, MessageSquare, BarChart3, TrendingUp, Shield, CheckCircle2, AlertCircle, Clock, DollarSign, Key, Lock, Users } from 'lucide-react';
+import ConciergePage from './pages/ConciergePage';
 import { 
   VideoCameraIcon,
   StarIcon,
@@ -458,7 +459,8 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
   triggerCrawling,
 }: SellPageProps) {
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-white overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 overflow-x-hidden">
       <div>
         <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none">
           <DynamicTypewriter 
@@ -520,13 +522,13 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
       {/* ⏰ 관리자용 61일 자동 회수 관리 패널 */}
 
 
-      <div className="max-w-6xl">
+      <div className="max-w-6xl mx-auto">
         <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
           {t.globalInsuranceRegistration}
         </p>
       </div>
 
-      <div className="max-w-6xl">
+      <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* 보험 정보 입력 폼 */}
           <div className="space-y-6">
@@ -1035,6 +1037,7 @@ export const SellInsurancePage = React.memo(function SellInsurancePage({
           </div>
         </div>
       </div>
+      </div>
     </div>
   );
 });
@@ -1194,7 +1197,8 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
   listingData,
 }: BuyPageProps) {
   return (
-    <div className="space-y-8">
+    <div className="min-h-screen bg-white overflow-x-hidden">
+      <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 overflow-x-hidden">
       <div>
         <div className="relative">
           <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10">
@@ -1464,6 +1468,7 @@ export const BuyInsurancePage = React.memo(function BuyInsurancePage({
           <p className="text-zinc-500 font-light">현재 등록된 상품이 없습니다.</p>
         </div>
       )}
+      </div>
     </div>
   );
 });
@@ -1640,7 +1645,7 @@ export const InquiryPage = React.memo(function InquiryPage({
         </FadeInAnimation>
       </div>
       
-      <div className="max-w-6xl">
+      <div className="max-w-6xl mx-auto">
         <div className="grid grid-cols-1 lg:grid-cols-2 gap-8">
           {/* Premium Zoom Consultation Form */}
           <div className="space-y-6">
@@ -3476,7 +3481,7 @@ export default function WellSwapGlobalPlatform() {
       )}
 
       {/* Main Content */}
-      <main className="container mx-auto px-4 md:px-6 py-8 md:py-12">
+      <main className="w-full">
         <div style={{ display: currentPage === "home" ? "block" : "none" }}>
           <HomePage t={t} setCurrentPage={setCurrentPage} setShowWalletConnectModal={setShowWalletConnectModal} />
         </div>
@@ -3551,6 +3556,55 @@ export default function WellSwapGlobalPlatform() {
 
         <div style={{ display: currentPage === "inquiry" ? "block" : "none" }}>
           <InquiryPage t={t} handleInquirySubmit={handleInquirySubmit} />
+        </div>
+
+        <div style={{ display: currentPage === "concierge" ? "block" : "none" }}>
+          <div className="min-h-screen bg-white overflow-x-hidden">
+            <div className="max-w-7xl mx-auto px-4 sm:px-6 lg:px-8 py-20 space-y-8 overflow-x-hidden">
+              <div className="space-y-8">
+                <div>
+                  <div className="relative">
+                    <h1 className="text-[8rem] sm:text-[12rem] md:text-[16rem] lg:text-[20rem] xl:text-[24rem] 2xl:text-[28rem] font-extralight tracking-tighter leading-[0.85] select-none relative z-10">
+                      <DynamicTypewriter 
+                        texts={[
+                          "CONCIERGE",
+                          "コンシェルジュ",
+                          "礼宾",
+                          "CONCIERGERIE",
+                          "CONSERJERÍA",
+                          "CONCIERGE"
+                        ]}
+                        speed={100}
+                        deleteSpeed={80}
+                        delayBetweenTexts={2800}
+                        gradient={true}
+                        scale={true}
+                        className="text-transparent bg-gradient-to-r from-neutral-900 via-neutral-700 to-neutral-900 bg-clip-text"
+                      />
+                    </h1>
+                    <GradientBackground 
+                      className="absolute inset-0 from-zinc-100 via-zinc-200 to-zinc-100 opacity-20 blur-3xl"
+                      colors={["from-zinc-100", "via-zinc-200", "to-zinc-100"]}
+                    >
+                      <div></div>
+                    </GradientBackground>
+                  </div>
+                  <FadeInAnimation delay={0.5}>
+                    <div className="w-24 h-px bg-zinc-900 mb-6"></div>
+                  </FadeInAnimation>
+                  <FadeInAnimation delay={0.8}>
+                    <p className="text-lg sm:text-xl text-zinc-600 font-light tracking-wide">
+                      Exclusive Premium Consulting for WellSwap Platform Users
+                    </p>
+                  </FadeInAnimation>
+                </div>
+                
+                <div className="max-w-6xl mx-auto">
+                  <ConciergePage currentPage={currentPage} setCurrentPage={setCurrentPage} />
+                </div>
+              </div>
+            </div>
+          </div>
         </div>
 
         <div style={{ display: currentPage === "admin" ? "block" : "none" }}>

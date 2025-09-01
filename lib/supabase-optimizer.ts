@@ -2,6 +2,8 @@
 
 import { getSupabase } from './database-wellswap';
 
+const supabase = getSupabase();
+
 // Database indexing optimization queries
 export const SUPABASE_INDEXES = {
   // Insurance listings performance indexes
